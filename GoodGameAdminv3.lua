@@ -1,3 +1,8 @@
+
+print("Loading....☑️")
+
+print("loaded successfully✅️")
+ 
  local game = game
  local GetService = game.GetService
  if (not game.IsLoaded(game)) then
@@ -23,23 +28,23 @@
  
  -- Creates folder & files for Prefix & Plugins
  if FileSupport then
- if not isfolder('Nameless-Admin') then
- makefolder('Nameless-Admin')
+ if not isfolder('GoodGame-Admin') then
+ makefolder('GoodGame-Admin')
  end
  
- if not isfolder('Nameless-Admin/Plugins') then
-	 makefolder('Nameless-Admin/Plugins')
+ if not isfolder('Goodgame-Admin/Plugins') then
+	 makefolder('GoodGame-Admin/Plugins')
  end
  
- if not isfile("Nameless-Admin/Prefix.txt") then
- writefile("Nameless-Admin/Prefix.txt", ';')
+ if not isfile("GoodGame-Admin/Prefix.txt") then
+ writefile("GoodGame-Admin/Prefix.txt", ';')
  else
  end
  end
  
  -- [[ PREFIX AND OTHER STUFF. ]] -- 
  local opt = {
-	 prefix = readfile("Nameless-Admin/Prefix.txt", ';'), -- If player's executor has the custom file function support it reads the prefix file to get prefix
+	 prefix = readfile("GoodGame-Admin/Prefix.txt", ';'), -- If player's executor has the custom file function support it reads the prefix file to get prefix
 	 tupleSeparator = ',',	-- ;ff me,others,all | ;ff me/others/all
 	 ui = {					-- never did anything with this
 		 
@@ -50,8 +55,8 @@
  }
  
  -- [[ Version ]] -- 
- currentversion = 1.13
- 
+ currentversion = 5.94
+
  --[[ VARIABLES ]]--
  PlaceId, JobId = game.PlaceId, game.JobId
  local Players = game:GetService("Players")
@@ -745,14 +750,14 @@
  if PrefixChange == nil then
  Notify({
  Description = "Please enter a valid prefix";
- Title = "Nameless Admin";
+ Title = "GoodGame Admin";
  Duration = 5;
  
  });
  elseif PrefixChange == "p" or PrefixChange == "[" or PrefixChange == "P" then
 	 Notify({
 		 Description = "idk why but this prefix breaks changing the prefix so pick smthing else alr?";
-		 Title = "Nameless Admin";
+		 Title = "GoodGame Admin";
 		 Duration = 5;
 		 
 		 });
@@ -760,7 +765,7 @@
  opt.prefix = PrefixChange
  Notify({
  Description = "Prefix set to " .. PrefixChange .. "";
- Title = "Nameless Admin";
+ Title = "GoodGame Admin";
  Duration = 5;
  
  });
@@ -774,23 +779,23 @@
  if PrefixChange == nil then
  Notify({
  Description = "Please enter a valid prefix";
- Title = "Nameless Admin";
+ Title = "GoodGame Admin";
  Duration = 5;
  
  });
  elseif PrefixChange == "p" or PrefixChange == "[" or PrefixChange == "P" then
 	 Notify({
 		 Description = "idk why but this prefix breaks changing the prefix so pick smthing else alr?";
-		 Title = "Nameless Admin";
+		 Title = "GoodGame Admin";
 		 Duration = 5;
 		 
 		 });
 	 else
- writefile("Nameless-Admin\\Prefix.txt", PrefixChange)
+ writefile("GoodGame-Admin\\Prefix.txt", PrefixChange)
  opt.prefix = PrefixChange
  Notify({
  Description = "Prefix saved to '" .. PrefixChange .. "'";
- Title = "Nameless Admin";
+ Title = "GoodGame Admin";
  Duration = 5;
  
  });
@@ -833,7 +838,7 @@
  
  Notify({
  Description = "Hat orbit loaded, if you wanna orbit other people type in the chat .orbit playername";
- Title = "Nameless Admin";
+ Title = "GoodGame Admin";
  Duration = 10;
  
  });
@@ -15109,14 +15114,14 @@ end
  ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
  ScreenGui.ResetOnSpawn = true
  
- TextClickButton.Name = "NamelessAdminButton"
+ TextClickButton.Name = "GoodGameAdminButton"
  TextClickButton.Parent = ScreenGui
  TextClickButton.BackgroundColor3 = Color3.fromRGB(4, 4, 4)
  TextClickButton.BackgroundTransparency = 1.000
  TextClickButton.Position = UDim2.new(0.418, 0,0, 0)
  TextClickButton.Size = UDim2.new(0, 2, 0, 33)
  TextClickButton.Font = Enum.Font.SourceSansBold
- TextClickButton.Text = "Nameless Admin " .. currentversion .. ""
+ TextClickButton.Text = "GoodGame Admin " .. currentversion .. ""
  TextClickButton.TextColor3 = Color3.fromRGB(255, 255, 255)
  TextClickButton.TextSize = 20.000
  TextClickButton.TextWrapped = true
