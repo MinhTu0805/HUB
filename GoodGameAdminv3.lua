@@ -1,12 +1,10 @@
 
 print("Loading....☑️")
 
-
-
-
-
 print("loaded successfully✅️")
- 
+
+print("The script is in Beta")
+
  local game = game
  local GetService = game.GetService
  if (not game.IsLoaded(game)) then
