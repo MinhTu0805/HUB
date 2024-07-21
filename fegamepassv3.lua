@@ -90,6 +90,12 @@ Tab:Button{
 }
 
 Tab:Button{
+	Name = "SlapBattles | Guide farm Script",
+	Description = "Cracked by Tú TM゚゚",
+	Callback = function()loadstring(game:HttpGet("https://raw.githubusercontent.com/MinhTu0805/HUB/main/HunterSlapBattles.lua"))() end
+}
+
+Tab:Button{
 	Name = "CHAOS",
 	Description = nil,
 	Callback = function() 
