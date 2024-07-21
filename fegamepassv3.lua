@@ -1,7 +1,7 @@
 Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deeeity/mercury-lib/master/src.lua"))()
 
 local GUI = Library:Create{
-    Name = "Free Pass V2",
+    Name = "Free PassV3 and HubV3",
     Size = UDim2.fromOffset(600, 400),
     Theme = Legacy,
     Link = "https://tiktok.com/@leminhtu760"
