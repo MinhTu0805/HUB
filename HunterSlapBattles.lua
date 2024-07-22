@@ -17,7 +17,7 @@ if game.PlaceId ~= 18550498098 then
 	return
 end
 
-Notify({Description = "Script made by OMOHOTA/Omoscript!" ; Title = "Script Credit!"; Duration = 5;});
+Notify({Description = "Script crack by Tú TM゚゚/TMscript!" ; Title = "Script Credit!"; Duration = 5;});
 
 local function GloveSlap()
     if game.Players.LocalPlayer.Character:FindFirstChildWhichIsA("Tool") == nil and game.Players.LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool") ~= nil and game.Players.LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool").Name == "Lantern" then game.Players.LocalPlayer.Character.Humanoid:EquipTool(game.Players.LocalPlayer.Backpack.Lantern) end
