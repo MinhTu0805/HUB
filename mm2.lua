@@ -1,226 +1,151 @@
-local VIP_USERNAMES = {
-    ["YourUsername"] = true, -- Thêm nhiều tên người dùng VIP nếu cần
-}
+-- Tạo tham chiếu đến các phần tử GUI
+local screenGui = script.Parent
+local mainFrame = screenGui:WaitForChild("MainFrame")
+local tabsFrame = mainFrame:WaitForChild("TabsFrame")
+local aimShootFrame = mainFrame:WaitForChild("AimShootFrame")
+local espFrame = mainFrame:WaitForChild("ESPFrame")
+local teleportFrame = mainFrame:WaitForChild("TeleportFrame")
+local flingFrame = mainFrame:WaitForChild("FlingFrame")
+local emoteFrame = mainFrame:WaitForChild("EmoteFrame")
+local doubleGunFrame = mainFrame:WaitForChild("DoubleGunFrame")
+local doubleKnifeFrame = mainFrame:WaitForChild("DoubleKnifeFrame")
 
--- Hàm phụ để kiểm tra xem người chơi có phải là VIP không
-local function isVIP(player)
-    return VIP_USERNAMES[player.Name] == true
+-- Các nút điều khiển tab
+local aimShootButton = tabsFrame:WaitForChild("AimShootButton")
+local espButton = tabsFrame:WaitForChild("ESPButton")
+local teleportButton = tabsFrame:WaitForChild("TeleportButton")
+local flingButton = tabsFrame:WaitForChild("FlingButton")
+local emoteButton = tabsFrame:WaitForChild("EmoteButton")
+local doubleGunButton = tabsFrame:WaitForChild("DoubleGunButton")
+local doubleKnifeButton = tabsFrame:WaitForChild("DoubleKnifeButton")
+
+-- Hàm để hiển thị frame tương ứng
+local function showFrame(frameToShow)
+    aimShootFrame.Visible = (frameToShow == aimShootFrame)
+    espFrame.Visible = (frameToShow == espFrame)
+    teleportFrame.Visible = (frameToShow == teleportFrame)
+    flingFrame.Visible = (frameToShow == flingFrame)
+    emoteFrame.Visible = (frameToShow == emoteFrame)
+    doubleGunFrame.Visible = (frameToShow == doubleGunFrame)
+    doubleKnifeFrame.Visible = (frameToShow == doubleKnifeFrame)
 end
 
--- Hàm phụ để lấy người chơi là kẻ sát nhân
-local function getMurderer()
-    for _, player in pairs(game.Players:GetPlayers()) do
-        if player:FindFirstChild("IsMurderer") and player.IsMurderer.Value then
-            return player
+-- Chuyển tab
+aimShootButton.MouseButton1Click:Connect(function() showFrame(aimShootFrame) end)
+espButton.MouseButton1Click:Connect(function() showFrame(espFrame) end)
+teleportButton.MouseButton1Click:Connect(function() showFrame(teleportFrame) end)
+flingButton.MouseButton1Click:Connect(function() showFrame(flingFrame) end)
+emoteButton.MouseButton1Click:Connect(function() showFrame(emoteFrame) end)
+doubleGunButton.MouseButton1Click:Connect(function() showFrame(doubleGunFrame) end)
+doubleKnifeButton.MouseButton1Click:Connect(function() showFrame(doubleKnifeFrame) end)
+
+-- Mặc định hiển thị tab đầu tiên
+showFrame(aimShootFrame)
+
+-- Aim Shoot Functionality
+local aimShootButton = aimShootFrame:WaitForChild("AimShootButton")
+aimShootButton.MouseButton1Click:Connect(function()
+    print("Aim Shoot Activated")
+end)
+
+-- ESP Functionality
+local players = game:GetService("Players")
+
+local function updateESP()
+    for _, player in ipairs(players:GetPlayers()) do
+        if player == players.LocalPlayer then continue end
+        local character = player.Character
+        if character then
+            local espTag = character:FindFirstChild("ESPTag")
+            if not espTag then
+                espTag = Instance.new("BillboardGui")
+                espTag.Name = "ESPTag"
+                espTag.Size = UDim2.new(0, 200, 0, 50)
+                espTag.Adornee = character:FindFirstChild("Head")
+                espTag.Parent = character
+            end
+            local color = Color3.new(1, 1, 1)
+            if player.Team and player.Team.Name == "Murderer" then
+                color = Color3.fromRGB(255, 0, 0)
+            elseif player.Team and player.Team.Name == "Innocents" then
+                color = Color3.fromRGB(0, 255, 0)
+            elseif player.Team and player.Team.Name == "Sheriff" then
+                color = Color3.fromRGB(0, 0, 255)
+            end
+            espTag.TextLabel.TextColor3 = color
         end
     end
-    return nil
 end
 
--- Chế độ bất tử
-local function toggleGodMode(enabled)
-    local player = game.Players.LocalPlayer
-    local character = player.Character
-    if character then
-        local humanoid = character:FindFirstChild("Humanoid")
+players.PlayerAdded:Connect(updateESP)
+players.PlayerRemoving:Connect(updateESP)
+
+-- Teleport Player Functionality
+local teleportButton = teleportFrame:WaitForChild("TeleportButton")
+local playerNameBox = teleportFrame:WaitForChild("PlayerNameBox")
+
+teleportButton.MouseButton1Click:Connect(function()
+    local playerName = playerNameBox.Text
+    local playerToTeleport = players:FindFirstChild(playerName)
+    if playerToTeleport and playerToTeleport.Character then
+        playerToTeleport.Character:SetPrimaryPartCFrame(players.LocalPlayer.Character.HumanoidRootPart.CFrame)
+    end
+end)
+
+-- Fling Player Functionality
+local flingButton = flingFrame:WaitForChild("FlingButton")
+local playerNameBoxFling = flingFrame:WaitForChild("PlayerNameBox")
+
+flingButton.MouseButton1Click:Connect(function()
+    local playerName = playerNameBoxFling.Text
+    local playerToFling = players:FindFirstChild(playerName)
+    if playerToFling and playerToFling.Character then
+        local character = playerToFling.Character
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
         if humanoid then
-            if enabled then
-                humanoid.MaxHealth = math.huge
-                humanoid.Health = humanoid.MaxHealth
-                humanoid.Died:Connect(function()
-                    humanoid.Health = humanoid.MaxHealth
-                    player:LoadCharacter()
-                end)
-                character.HumanoidRootPart.Anchored = true
-            else
-                humanoid.MaxHealth = 100
-                humanoid.Health = 100
-                character.HumanoidRootPart.Anchored = false
-            end
+            humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+            local bodyVelocity = Instance.new("BodyVelocity")
+            bodyVelocity.Velocity = Vector3.new(0, 100, 0)
+            bodyVelocity.Parent = character.PrimaryPart
+            game:GetService("Debris"):AddItem(bodyVelocity, 1)
         end
     end
-end
+end)
 
--- ESP
-local function toggleESP(enabled)
-    if isVIP(game.Players.LocalPlayer) then
-        -- Triển khai chức năng ESP ở đây
-        -- Sử dụng tham số 'enabled' để bật/tắt
-    end
-end
+-- Emote MM2 Functionality
+local emoteButton = emoteFrame:WaitForChild("EmoteButton")
 
--- Hỗ trợ ngắm
-local aimAssistConnection
-
-local function aimAssist(enabled)
-    local player = game.Players.LocalPlayer
-    if isVIP(player) then
-        if enabled then
-            local murderer = getMurderer()
-            if murderer and murderer.Character and murderer.Character:FindFirstChild("Head") then
-                local murdererHead = murderer.Character.Head
-                aimAssistConnection = game:GetService("RunService").RenderStepped:Connect(function()
-                    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                        player.Character.HumanoidRootPart.CFrame = CFrame.new(player.Character.HumanoidRootPart.Position, murdererHead.Position)
-                    end
-                end)
-            end
-        elseif aimAssistConnection then
-            aimAssistConnection:Disconnect()
-            aimAssistConnection = nil
+emoteButton.MouseButton1Click:Connect(function()
+    local character = game.Players.LocalPlayer.Character
+    if character then
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            local emote = Instance.new("Animation")
+            emote.AnimationId = "rbxassetid://YOUR_EMOTE_ANIMATION_ID"
+            local animTrack = humanoid:LoadAnimation(emote)
+            animTrack:Play()
         end
     end
-end
+end)
 
--- Dịch chuyển
-local function teleportTo(playerName, position)
-    local player = game.Players:FindFirstChild(playerName)
-    if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        player.Character.HumanoidRootPart.CFrame = CFrame.new(position)
+-- Double Gun Functionality
+local doubleGunButton = doubleGunFrame:WaitForChild("DoubleGunButton")
+
+doubleGunButton.MouseButton1Click:Connect(function()
+    local character = game.Players.LocalPlayer.Character
+    if character then
+        print("Double Gun Activated")
+        -- Implement double gun logic here
     end
-end
+end)
 
--- Tạo giao diện người dùng đẹp hơn
-local function setupGUI()
-    local player = game.Players.LocalPlayer
-    local screenGui = Instance.new("ScreenGui", player.PlayerGui)
-    screenGui.Name = "CustomGUI"
+-- Double Knife Functionality
+local doubleKnifeButton = doubleKnifeFrame:WaitForChild("DoubleKnifeButton")
 
-    local frame = Instance.new("Frame", screenGui)
-    frame.Size = UDim2.new(0, 250, 0, 400)
-    frame.Position = UDim2.new(0.5, -125, 0.5, -200)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    frame.BorderSizePixel = 0
-    frame.BackgroundTransparency = 0.3
-    frame.Active = true
-    frame.Draggable = true
-
-    local uiCorner = Instance.new("UICorner", frame)
-    uiCorner.CornerRadius = UDim.new(0, 15)
-
-    local title = Instance.new("TextLabel", frame)
-    title.Size = UDim2.new(1, 0, 0, 50)
-    title.Position = UDim2.new(0, 0, 0, 0)
-    title.Text = "Bảng điều khiển"
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    title.BorderSizePixel = 0
-    title.Font = Enum.Font.SourceSansBold
-    title.TextSize = 24
-
-    local uiCornerTitle = Instance.new("UICorner", title)
-    uiCornerTitle.CornerRadius = UDim.new(0, 15)
-
-    local godModeButton = Instance.new("TextButton", frame)
-    godModeButton.Size = UDim2.new(1, 0, 0, 50)
-    godModeButton.Position = UDim2.new(0, 0, 0, 60)
-    godModeButton.Text = "Bật/Tắt chế độ bất tử"
-    godModeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    godModeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    godModeButton.BorderSizePixel = 0
-    godModeButton.Font = Enum.Font.SourceSansBold
-    godModeButton.TextSize = 18
-    local godModeEnabled = false
-    godModeButton.MouseButton1Click:Connect(function()
-        godModeEnabled = not godModeEnabled
-        toggleGodMode(godModeEnabled)
-        godModeButton.Text = godModeEnabled and "Tắt chế độ bất tử" or "Bật chế độ bất tử"
-    end)
-
-    local espButton = Instance.new("TextButton", frame)
-    espButton.Size = UDim2.new(1, 0, 0, 50)
-    espButton.Position = UDim2.new(0, 0, 0, 120)
-    espButton.Text = "Bật/Tắt ESP"
-    espButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    espButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    espButton.BorderSizePixel = 0
-    espButton.Font = Enum.Font.SourceSansBold
-    espButton.TextSize = 18
-    local espEnabled = false
-    espButton.MouseButton1Click:Connect(function()
-        espEnabled = not espEnabled
-        toggleESP(espEnabled)
-        espButton.Text = espEnabled and "Tắt ESP" or "Bật ESP"
-    end)
-
-    local aimAssistButton = Instance.new("TextButton", frame)
-    aimAssistButton.Size = UDim2.new(1, 0, 0, 50)
-    aimAssistButton.Position = UDim2.new(0, 0, 0, 180)
-    aimAssistButton.Text = "Bật/Tắt hỗ trợ ngắm"
-    aimAssistButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    aimAssistButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    aimAssistButton.BorderSizePixel = 0
-    aimAssistButton.Font = Enum.Font.SourceSansBold
-    aimAssistButton.TextSize = 18
-    local aimAssistEnabled = false
-    aimAssistButton.MouseButton1Click:Connect(function()
-        aimAssistEnabled = not aimAssistEnabled
-        aimAssist(aimAssistEnabled)
-        aimAssistButton.Text = aimAssistEnabled and "Tắt hỗ trợ ngắm" or "Bật hỗ trợ ngắm"
-    end)
-
-    local teleportButton = Instance.new("TextButton", frame)
-    teleportButton.Size = UDim2.new(1, 0, 0, 50)
-    teleportButton.Position = UDim2.new(0, 0, 0, 240)
-    teleportButton.Text = "Dịch chuyển"
-    teleportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    teleportButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    teleportButton.BorderSizePixel = 0
-    teleportButton.Font = Enum.Font.SourceSansBold
-    teleportButton.TextSize = 18
-    teleportButton.MouseButton1Click:Connect(function()
-        local playerName = "TênNgườiChơi" -- Thay bằng tên người chơi thực tế hoặc đầu vào
-        local position = Vector3.new(0, 0, 0) -- Thay bằng vị trí thực tế
-        teleportTo(playerName, position)
-    end)
-
-    local settingsButton = Instance.new("TextButton", frame)
-    settingsButton.Size = UDim2.new(1, 0, 0, 50)
-    settingsButton.Position = UDim2.new(0, 0, 0, 300)
-    settingsButton.Text = "Cài đặt"
-    settingsButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    settingsButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    settingsButton.BorderSizePixel = 0
-    settingsButton.Font = Enum.Font.SourceSansBold
-    settingsButton.TextSize = 18
-    settingsButton.MouseButton1Click:Connect(function()
-        -- Mở bảng cài đặt
-        local settingsFrame = Instance.new("Frame", screenGui)
-        settingsFrame.Size = UDim2.new(0, 200, 0, 200)
-        settingsFrame.Position = UDim2.new(0.5, -100, 0.5, -100)
-        settingsFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        settingsFrame.BorderSizePixel = 0
-        settingsFrame.Active = true
-        settingsFrame.Draggable = true
-        
-        local uiCornerSettings = Instance.new("UICorner", settingsFrame)
-        uiCornerSettings.CornerRadius = UDim.new(0, 10)
-        
-        local settingsTitle = Instance.new("TextLabel", settingsFrame)
-        settingsTitle.Size = UDim2.new(1, 0, 0, 50)
-        settingsTitle.Position = UDim2.new(0, 0, 0, 0)
-        settingsTitle.Text = "Cài đặt"
-        settingsTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-        settingsTitle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        settingsTitle.BorderSizePixel = 0
-        settingsTitle.Font = Enum.Font.SourceSansBold
-        settingsTitle.TextSize = 20
-        
-        local closeButton = Instance.new("TextButton", settingsFrame)
-        closeButton.Size = UDim2.new(0, 50, 0, 50)
-        closeButton.Position = UDim2.new(1, -50, 0, 0)
-        closeButton.Text = "X"
-        closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-        closeButton.BorderSizePixel = 0
-        closeButton.Font = Enum.Font.SourceSansBold
-        closeButton.TextSize = 18
-        closeButton.MouseButton1Click:Connect(function()
-            settingsFrame:Destroy()
-        end)
-        
-        -- Thêm các cài đặt khác tại đây
-    end)
-end
-
-setupGUI()
+doubleKnifeButton.MouseButton1Click:Connect(function()
+    local character = game.Players.LocalPlayer.Character
+    if character then
+        print("Double Knife Activated")
+        -- Implement double knife logic here
+    end
+end)
