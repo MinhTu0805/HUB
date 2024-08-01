@@ -80,20 +80,23 @@ local function teleportTo(playerName, position)
     end
 end
 
--- Tích hợp GUI mẫu
+-- Tạo giao diện người dùng đẹp hơn
 local function setupGUI()
     local player = game.Players.LocalPlayer
     local screenGui = Instance.new("ScreenGui", player.PlayerGui)
-    
+    screenGui.Name = "CustomGUI"
+
     local frame = Instance.new("Frame", screenGui)
-    frame.Size = UDim2.new(0, 200, 0, 300)
-    frame.Position = UDim2.new(0, 10, 0, 10)
+    frame.Size = UDim2.new(0, 250, 0, 400)
+    frame.Position = UDim2.new(0.5, -125, 0.5, -200)
     frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     frame.BorderSizePixel = 0
     frame.BackgroundTransparency = 0.3
+    frame.Active = true
+    frame.Draggable = true
 
     local uiCorner = Instance.new("UICorner", frame)
-    uiCorner.CornerRadius = UDim.new(0, 10)
+    uiCorner.CornerRadius = UDim.new(0, 15)
 
     local title = Instance.new("TextLabel", frame)
     title.Size = UDim2.new(1, 0, 0, 50)
@@ -104,6 +107,9 @@ local function setupGUI()
     title.BorderSizePixel = 0
     title.Font = Enum.Font.SourceSansBold
     title.TextSize = 24
+
+    local uiCornerTitle = Instance.new("UICorner", title)
+    uiCornerTitle.CornerRadius = UDim.new(0, 15)
 
     local godModeButton = Instance.new("TextButton", frame)
     godModeButton.Size = UDim2.new(1, 0, 0, 50)
@@ -166,6 +172,54 @@ local function setupGUI()
         local playerName = "TênNgườiChơi" -- Thay bằng tên người chơi thực tế hoặc đầu vào
         local position = Vector3.new(0, 0, 0) -- Thay bằng vị trí thực tế
         teleportTo(playerName, position)
+    end)
+
+    local settingsButton = Instance.new("TextButton", frame)
+    settingsButton.Size = UDim2.new(1, 0, 0, 50)
+    settingsButton.Position = UDim2.new(0, 0, 0, 300)
+    settingsButton.Text = "Cài đặt"
+    settingsButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    settingsButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    settingsButton.BorderSizePixel = 0
+    settingsButton.Font = Enum.Font.SourceSansBold
+    settingsButton.TextSize = 18
+    settingsButton.MouseButton1Click:Connect(function()
+        -- Mở bảng cài đặt
+        local settingsFrame = Instance.new("Frame", screenGui)
+        settingsFrame.Size = UDim2.new(0, 200, 0, 200)
+        settingsFrame.Position = UDim2.new(0.5, -100, 0.5, -100)
+        settingsFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        settingsFrame.BorderSizePixel = 0
+        settingsFrame.Active = true
+        settingsFrame.Draggable = true
+        
+        local uiCornerSettings = Instance.new("UICorner", settingsFrame)
+        uiCornerSettings.CornerRadius = UDim.new(0, 10)
+        
+        local settingsTitle = Instance.new("TextLabel", settingsFrame)
+        settingsTitle.Size = UDim2.new(1, 0, 0, 50)
+        settingsTitle.Position = UDim2.new(0, 0, 0, 0)
+        settingsTitle.Text = "Cài đặt"
+        settingsTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+        settingsTitle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        settingsTitle.BorderSizePixel = 0
+        settingsTitle.Font = Enum.Font.SourceSansBold
+        settingsTitle.TextSize = 20
+        
+        local closeButton = Instance.new("TextButton", settingsFrame)
+        closeButton.Size = UDim2.new(0, 50, 0, 50)
+        closeButton.Position = UDim2.new(1, -50, 0, 0)
+        closeButton.Text = "X"
+        closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        closeButton.BorderSizePixel = 0
+        closeButton.Font = Enum.Font.SourceSansBold
+        closeButton.TextSize = 18
+        closeButton.MouseButton1Click:Connect(function()
+            settingsFrame:Destroy()
+        end)
+        
+        -- Thêm các cài đặt khác tại đây
     end)
 end
 
