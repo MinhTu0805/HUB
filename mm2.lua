@@ -1,3 +1,5 @@
+print("Script is in Beta mode")
+
 -- Phần 1: Thiết lập GUI cơ bản
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "CrazyGameEditorHack"
