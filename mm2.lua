@@ -1,306 +1,194 @@
--- Đặt LocalScript trong Frame của GUI
-local knifeFakeButton = script.Parent:WaitForChild("KnifeFakeButton")
-local gunFakeButton = script.Parent:WaitForChild("GunFakeButton")
-local teleportVoidButton = script.Parent:WaitForChild("TeleportVoidButton")
-local teleportMapVoteButton = script.Parent:WaitForChild("TeleportMapVoteButton")
-local teleportLobbyButton = script.Parent:WaitForChild("TeleportLobbyButton")
-local teleportMurdererButton = script.Parent:WaitForChild("TeleportMurdererButton")
-local teleportSheriffButton = script.Parent:WaitForChild("TeleportSheriffButton")
-local targetPlayerButton = script.Parent:WaitForChild("TargetPlayerButton")
-local playerNameInput = script.Parent:WaitForChild("PlayerNameInput") -- TextBox để nhập tên người chơi
-local hubFrame = script.Parent -- Toàn bộ hub hoặc phần tử chứa các nút
-local hubNameLabel = script.Parent:WaitForChild("HubNameLabel")
+-- Phần 1: Thiết lập GUI cơ bản
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "CrazyGameEditorHack"
+ScreenGui.Parent = game.CoreGui
 
--- Thiết lập nền galaxy
-hubFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 40) -- Màu nền tối để tạo cảm giác không gian
-hubFrame.BackgroundTransparency = 0.3 -- Độ trong suốt của nền
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.Size = UDim2.new(0, 500, 0, 600)
+MainFrame.Position = UDim2.new(0.5, -250, 0.5, -300)
+MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+MainFrame.BackgroundTransparency = 0.5
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
 
--- Tạo gradient cho nền
-local uiGradient = Instance.new("UIGradient")
-uiGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(10, 10, 40)), -- Màu tối
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 60))  -- Màu sáng hơn để tạo hiệu ứng ánh sáng
-}
-uiGradient.Rotation = 45 -- Góc gradient
-uiGradient.Parent = hubFrame
+local UICorner = Instance.new("UICorner")
+UICorner.Parent = MainFrame
+UICorner.CornerRadius = UDim.new(0, 12)
 
--- Thêm góc bo tròn cho hub
-local uicorner = Instance.new("UICorner")
-uicorner.CornerRadius = UDim.new(0, 20) -- Bo tròn góc với bán kính 20
-uicorner.Parent = hubFrame
+-- Thêm nút đóng/mở hub
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Parent = ScreenGui
+ToggleButton.Size = UDim2.new(0, 100, 0, 50)
+ToggleButton.Position = UDim2.new(0, 20, 0, 20)
+ToggleButton.Text = "Open/Close Hub"
+ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+ToggleButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
 
--- Thiết lập tên cho hub
-hubNameLabel.Text = "CrazyGameEditorHack"
-hubNameLabel.TextSize = 36
-hubNameLabel.TextColor3 = Color3.fromRGB(255, 255, 255) -- Màu trắng
-hubNameLabel.BackgroundTransparency = 1 -- Trong suốt, không có nền
-hubNameLabel.Position = UDim2.new(0.5, -hubNameLabel.TextBounds.X/2, 0, 10) -- Canh giữa ở trên cùng
-
--- Thiết lập các nút
-local function setButtonStyle(button)
-    button.BackgroundColor3 = Color3.fromRGB(30, 30, 30) -- Màu nền nút
-    button.TextColor3 = Color3.fromRGB(255, 255, 255) -- Màu chữ
-    button.TextSize = 24
-    button.Font = Enum.Font.Gotham -- Chọn font phù hợp
-    button.BorderSizePixel = 0 -- Không có viền
-    local uicorner = Instance.new("UICorner")
-    uicorner.CornerRadius = UDim.new(0, 15) -- Bo tròn góc nút
-    uicorner.Parent = button
+-- Phần 2: Tạo các nút chức năng
+local function createButton(parent, name, position, size, text)
+    local Button = Instance.new("TextButton")
+    Button.Name = name
+    Button.Parent = parent
+    Button.Size = size
+    Button.Position = position
+    Button.Text = text
+    Button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Button.BorderSizePixel = 0
+    local UICornerButton = Instance.new("UICorner")
+    UICornerButton.Parent = Button
+    UICornerButton.CornerRadius = UDim.new(0, 6)
+    return Button
 end
 
--- Áp dụng kiểu dáng cho các nút
-local buttons = {
-    autoFarmButton, beachballsButton, coinsButton, bothButton, 
-    twoLivesButton, exposeRolesButton, autoExposeRolesButton, 
-    exposeMurdererPerkButton, autoExposeMurdererPerkButton, 
-    outlineEveryoneButton, outlineDroppedGunButton, tracerDroppedGunButton, 
-    dualKnifeEffectsButton, optimizeCoinsButton, disableBankScannerButton, 
-    gunSilentAimButton, showRoundTimerButton, teleportVoidButton, 
-    teleportMapVoteButton, teleportLobbyButton, teleportMurdererButton, 
-    teleportSheriffButton, targetPlayerButton, knifeFakeButton, gunFakeButton
-}
+local KnifeFakeButton = createButton(MainFrame, "KnifeFakeButton", UDim2.new(0, 20, 0, 20), UDim2.new(0, 220, 0, 50), "Knife Fake (On/Off)")
+local GunFakeButton = createButton(MainFrame, "GunFakeButton", UDim2.new(0, 260, 0, 20), UDim2.new(0, 220, 0, 50), "Gun Fake (On/Off)")
+local TeleportVoidButton = createButton(MainFrame, "TeleportVoidButton", UDim2.new(0, 20, 0, 90), UDim2.new(0, 220, 0, 50), "Teleport to Void")
+local TeleportMapVoteButton = createButton(MainFrame, "TeleportMapVoteButton", UDim2.new(0, 260, 0, 90), UDim2.new(0, 220, 0, 50), "Teleport to Map Vote")
+local TeleportLobbyButton = createButton(MainFrame, "TeleportLobbyButton", UDim2.new(0, 20, 0, 160), UDim2.new(0, 220, 0, 50), "Teleport to Lobby")
+local TeleportMurdererButton = createButton(MainFrame, "TeleportMurdererButton", UDim2.new(0, 260, 0, 160), UDim2.new(0, 220, 0, 50), "Teleport to Murderer")
+local TeleportSheriffButton = createButton(MainFrame, "TeleportSheriffButton", UDim2.new(0, 20, 0, 230), UDim2.new(0, 220, 0, 50), "Teleport to Sheriff")
+local TargetPlayerButton = createButton(MainFrame, "TargetPlayerButton", UDim2.new(0, 260, 0, 230), UDim2.new(0, 220, 0, 50), "Target Player")
+local PlayerNameInput = Instance.new("TextBox")
+PlayerNameInput.Parent = MainFrame
+PlayerNameInput.Size = UDim2.new(0, 460, 0, 30)
+PlayerNameInput.Position = UDim2.new(0, 20, 0, 300)
+PlayerNameInput.PlaceholderText = "Enter Player's Username"
+PlayerNameInput.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+PlayerNameInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+PlayerNameInput.BorderSizePixel = 0
+local UICornerInput = Instance.new("UICorner")
+UICornerInput.Parent = PlayerNameInput
+UICornerInput.CornerRadius = UDim.new(0, 6)
 
-for _, button in pairs(buttons) do
-    setButtonStyle(button)
+-- Phần 3: Thêm chức năng cho các nút
+local function fakeKnife(on)
+    if on then
+        -- Mã để bật Knife giả
+    else
+        -- Mã để tắt Knife giả
+    end
 end
 
--- Thiết lập các thuộc tính của các nút và nhãn
-autoFarmButton.Text = "Toggle Auto Farm"
-beachballsButton.Text = "Farm Beachballs"
-coinsButton.Text = "Farm Coins"
-bothButton.Text = "Farm Coins & Beachballs"
-twoLivesButton.Text = "Toggle Two Lives"
-exposeRolesButton.Text = "Expose Roles"
-autoExposeRolesButton.Text = "Auto Expose Roles"
-exposeMurdererPerkButton.Text = "Expose Murderer's Perk"
-autoExposeMurdererPerkButton.Text = "Auto Expose Murderer's Perk"
-outlineEveryoneButton.Text = "Outline Everyone"
-outlineDroppedGunButton.Text = "Outline Dropped Gun"
-tracerDroppedGunButton.Text = "Tracer Dropped Gun"
-dualKnifeEffectsButton.Text = "Dual Knife Effects"
-optimizeCoinsButton.Text = "Optimize Coins"
-disableBankScannerButton.Text = "Disable Bank Scanner"
-gunSilentAimButton.Text = "Gun Silent Aim"
-showRoundTimerButton.Text = "Show Round Timer"
-teleportVoidButton.Text = "Teleport to Void"
-teleportMapVoteButton.Text = "Teleport to Map Vote"
-teleportLobbyButton.Text = "Teleport to Lobby"
-teleportMurdererButton.Text = "Teleport to Murderer"
-teleportSheriffButton.Text = "Teleport to Sheriff"
-targetPlayerButton.Text = "Target Player"
-knifeFakeButton.Text = "Fake Knife"
-gunFakeButton.Text = "Fake Gun"
-statusLabel.Text = "Status: Inactive"
-toggleHubButton.Text = "Toggle Hub"
+KnifeFakeButton.MouseButton1Click:Connect(function()
+    fakeKnife(not KnifeFakeOn)
+    KnifeFakeOn = not KnifeFakeOn
+end)
 
--- Biến để theo dõi trạng thái
-local autoFarmActive = false
-local farmMode = nil -- "Beachballs", "Coins", "Both"
-local hubVisible = true -- Trạng thái hiển thị của hub
-local twoLivesActive = false
-local exposeRolesActive = false
-local autoExposeRolesActive = false
-local exposeMurdererPerkActive = false
-local autoExposeMurdererPerkActive = false
-local outlineEveryoneActive = false
-local outlineDroppedGunActive = false
-local tracerDroppedGunActive = false
-local dualKnifeEffectsActive = false
-local optimizeCoinsActive = false
-local disableBankScannerActive = false
-local gunSilentAimActive = false
-local showRoundTimerActive = false
-local knifeFakeActive = false
-local gunFakeActive = false
+GunFakeButton.MouseButton1Click:Connect(function()
+    -- Thêm mã để bật/tắt Gun giả
+end)
 
--- Hàm để cập nhật trạng thái của nút
-local function updateStatus()
-    local status = "Status: Inactive"
-    if autoFarmActive then
-        if farmMode == "Beachballs" then
-            status = "Status: Auto Farming Beachballs"
-        elseif farmMode == "Coins" then
-            status = "Status: Auto Farming Coins"
-        elseif farmMode == "Both" then
-            status = "Status: Auto Farming Coins & Beachballs"
+TeleportVoidButton.MouseButton1Click:Connect(function()
+    -- Thêm mã để teleport đến Void
+    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(1000, -1000, 1000)
+end)
+
+TeleportMapVoteButton.MouseButton1Click:Connect(function()
+    -- Thêm mã để teleport đến Map Vote
+    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(200, 200, 200)
+end)
+
+TeleportLobbyButton.MouseButton1Click:Connect(function()
+    -- Thêm mã để teleport đến Lobby
+    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, 0, 0)
+end)
+
+TeleportMurdererButton.MouseButton1Click:Connect(function()
+    -- Thêm mã để teleport đến Murderer
+    local murderer = nil
+    for _, player in ipairs(game.Players:GetPlayers()) do
+        if player:FindFirstChild("Role") and player.Role.Value == "Murderer" then
+            murderer = player
+            break
         end
-    elseif twoLivesActive then
-        status = "Status: Two Lives Enabled"
-    elseif exposeRolesActive then
-        status = "Status: Expose Roles Enabled"
-    elseif autoExposeRolesActive then
-        status = "Status: Auto Expose Roles Enabled"
-    elseif exposeMurdererPerkActive then
-        status = "Status: Expose Murderer's Perk Enabled"
-    elseif autoExposeMurdererPerkActive then
-        status = "Status: Auto Expose Murderer's Perk Enabled"
-    elseif outlineEveryoneActive then
-        status = "Status: Outline Everyone Enabled"
-    elseif outlineDroppedGunActive then
-        status = "Status: Outline Dropped Gun Enabled"
-    elseif tracerDroppedGunActive then
-        status = "Status: Tracer Dropped Gun Enabled"
-    elseif dualKnifeEffectsActive then
-        status = "Status: Dual Knife Effects Enabled"
-    elseif optimizeCoinsActive then
-        status = "Status: Optimize Coins Enabled"
-    elseif disableBankScannerActive then
-        status = "Status: Disable Bank Scanner Enabled"
-    elseif gunSilentAimActive then
-        status = "Status: Gun Silent Aim Enabled"
-    elseif showRoundTimerActive then
-        status = "Status: Show Round Timer Enabled"
-    elseif knifeFakeActive then
-        status = "Status: Fake Knife Enabled"
-    elseif gunFakeActive then
-        status = "Status: Fake Gun Enabled"
     end
-    statusLabel.Text = status
+    if murderer then
+        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = murderer.Character.HumanoidRootPart.CFrame
+    end
+end)
+
+TeleportSheriffButton.MouseButton1Click:Connect(function()
+    -- Thêm mã để teleport đến Sheriff
+    local sheriff = nil
+    for _, player in ipairs(game.Players:GetPlayers()) do
+        if player:FindFirstChild("Role") and player.Role.Value == "Sheriff" then
+            sheriff = player
+            break
+        end
+    end
+    if sheriff then
+        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = sheriff.Character.HumanoidRootPart.CFrame
+    end
+end)
+
+TargetPlayerButton.MouseButton1Click:Connect(function()
+    local targetPlayerName = PlayerNameInput.Text
+    local targetPlayer = game.Players:FindFirstChild(targetPlayerName)
+    if targetPlayer then
+        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame
+    end
+end)
+
+-- Phần 4: Thêm chức năng nâng cao và hiệu ứng
+local function createEffect(parent)
+    local Effect = Instance.new("ParticleEmitter")
+    Effect.Parent = parent
+    Effect.Texture = "rbxassetid://241594419" -- Hiệu ứng galaxy
+    Effect.Rate = 10
+    Effect.Lifetime = NumberRange.new(1, 2)
+    Effect.Speed = NumberRange.new(1, 2)
+    Effect.RotSpeed = NumberRange.new(100, 200)
+    Effect.SpreadAngle = Vector2.new(360, 360)
+    Effect.Acceleration = Vector3.new(0, 5, 0)
+    return Effect
 end
 
--- Hàm để hiển thị hoặc ẩn hub
-local function toggleHub()
-    hubVisible = not hubVisible
-    hubFrame.Visible = hubVisible
+local function applyEffectToButtons(buttons)
+    for _, button in ipairs(buttons) do
+        createEffect(button)
+    end
 end
 
--- Nút Đóng/Mở Hub
-toggleHubButton.MouseButton1Click:Connect(function()
-    toggleHub()
-end)
+applyEffectToButtons({KnifeFakeButton, GunFakeButton, TeleportVoidButton, TeleportMapVoteButton, TeleportLobbyButton, TeleportMurdererButton, TeleportSheriffButton, TargetPlayerButton})
 
--- Các nút chức năng
-autoFarmButton.MouseButton1Click:Connect(function()
-    autoFarmActive = not autoFarmActive
-    updateStatus()
-    if autoFarmActive then
-        startAutoFarm()
-    else
-        stopAutoFarm()
+-- Thêm chức năng nâng cao
+local function teleportToRandomPlayer()
+    local players = game.Players:GetPlayers()
+    if #players > 1 then
+        local randomPlayer
+        repeat
+            randomPlayer = players[math.random(#players)]
+        until randomPlayer ~= LocalPlayer
+        LocalPlayer.Character.HumanoidRootPart.CFrame = randomPlayer.Character.HumanoidRootPart.CFrame
     end
-end)
+end
 
-beachballsButton.MouseButton1Click:Connect(function()
-    farmMode = "Beachballs"
-    updateStatus()
-end)
+local RandomTeleportButton = createButton(MainFrame, "RandomTeleportButton", UDim2.new(0, 20, 0, 370), UDim2.new(0, 460, 0, 50), "Random Teleport")
+RandomTeleportButton.MouseButton1Click:Connect(teleportToRandomPlayer)
 
-coinsButton.MouseButton1Click:Connect(function()
-    farmMode = "Coins"
-    updateStatus()
-end)
-
-bothButton.MouseButton1Click:Connect(function()
-    farmMode = "Both"
-    updateStatus()
-end)
-
-twoLivesButton.MouseButton1Click:Connect(function()
-    twoLivesActive = not twoLivesActive
-    updateStatus()
-end)
-
-exposeRolesButton.MouseButton1Click:Connect(function()
-    exposeRolesActive = not exposeRolesActive
-    updateStatus()
-end)
-
-autoExposeRolesButton.MouseButton1Click:Connect(function()
-    autoExposeRolesActive = not autoExposeRolesActive
-    updateStatus()
-end)
-
-exposeMurdererPerkButton.MouseButton1Click:Connect(function()
-    exposeMurdererPerkActive = not exposeMurdererPerkActive
-    updateStatus()
-end)
-
-autoExposeMurdererPerkButton.MouseButton1Click:Connect(function()
-    autoExposeMurdererPerkActive = not autoExposeMurdererPerkActive
-    updateStatus()
-end)
-
-outlineEveryoneButton.MouseButton1Click:Connect(function()
-    outlineEveryoneActive = not outlineEveryoneActive
-    updateStatus()
-end)
-
-outlineDroppedGunButton.MouseButton1Click:Connect(function()
-    outlineDroppedGunActive = not outlineDroppedGunActive
-    updateStatus()
-end)
-
-tracerDroppedGunButton.MouseButton1Click:Connect(function()
-    tracerDroppedGunActive = not tracerDroppedGunActive
-    updateStatus()
-end)
-
-dualKnifeEffectsButton.MouseButton1Click:Connect(function()
-    dualKnifeEffectsActive = not dualKnifeEffectsActive
-    updateStatus()
-end)
-
-optimizeCoinsButton.MouseButton1Click:Connect(function()
-    optimizeCoinsActive = not optimizeCoinsActive
-    updateStatus()
-end)
-
-disableBankScannerButton.MouseButton1Click:Connect(function()
-    disableBankScannerActive = not disableBankScannerActive
-    updateStatus()
-end)
-
-gunSilentAimButton.MouseButton1Click:Connect(function()
-    gunSilentAimActive = not gunSilentAimActive
-    updateStatus()
-end)
-
-showRoundTimerButton.MouseButton1Click:Connect(function()
-    showRoundTimerActive = not showRoundTimerActive
-    updateStatus()
-end)
-
-teleportVoidButton.MouseButton1Click:Connect(function()
-    -- Thay đổi chỗ này với mã teleport đến Void
-end)
-
-teleportMapVoteButton.MouseButton1Click:Connect(function()
-    -- Thay đổi chỗ này với mã teleport đến Map Vote
-end)
-
-teleportLobbyButton.MouseButton1Click:Connect(function()
-    -- Thay đổi chỗ này với mã teleport đến Lobby
-end)
-
-teleportMurdererButton.MouseButton1Click:Connect(function()
-    -- Thay đổi chỗ này với mã teleport đến Murderer
-end)
-
-teleportSheriffButton.MouseButton1Click:Connect(function()
-    -- Thay đổi chỗ này với mã teleport đến Sheriff
-end)
-
-targetPlayerButton.MouseButton1Click:Connect(function()
-    local targetPlayerName = playerNameInput.Text
-    -- Thay đổi chỗ này với mã để target người chơi với tên targetPlayerName
-end)
-
-knifeFakeButton.MouseButton1Click:Connect(function()
-    knifeFakeActive = not knifeFakeActive
-    updateStatus()
-    if knifeFakeActive then
-        -- Thay đổi chỗ này với mã để kích hoạt knife giả
-    else
-        -- Thay đổi chỗ này với mã để hủy kích hoạt knife giả
+-- Phần 5: Kiểm tra và tối ưu hóa script cho các executor
+local function isExecutorSupported()
+    local executors = {"Synapse X", "Krnl", "Sentinel", "Fluxus", "Oxygen U", "Delta", "CubiX", "Solara", "Arceus X"}
+    for _, executor in ipairs(executors) do
+        if identifyexecutor and identifyexecutor() == executor then
+            return true
+        end
     end
-end)
+    return false
+end
 
-gunFakeButton.MouseButton1Click:Connect(function()
-    gunFakeActive = not gunFakeActive
-    updateStatus()
-    if gunFakeActive then
-        -- Thay đổi chỗ này với mã để kích hoạt gun giả
-    else
-        -- Thay đổi chỗ này với mã để hủy kích hoạt gun giả
-    end
-end)
+if isExecutorSupported() then
+    print("Executor is supported!")
+else
+    warn("Executor is not supported! Some functions may not work correctly.")
+end
+
+print("CrazyGameEditorHack script loaded successfully!")
+
+-- Lưu ý: Đảm bảo script này được cập nhật thường xuyên để hoạt động tốt trên tất cả các executor.
