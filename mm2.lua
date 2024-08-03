@@ -1,15 +1,21 @@
+-- Bắt đầu script
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
 -- Tạo ScreenGui
-local screenGui = Instance.new("ScreenGui", game.Players.LocalPlayer:WaitForChild("PlayerGui"))
+local screenGui = Instance.new("ScreenGui", game.CoreGui)
 screenGui.Name = "CrazyGameEditorHackGui"
+screenGui.ResetOnSpawn = false
 
 -- Tạo Main Frame
 local mainFrame = Instance.new("Frame", screenGui)
 mainFrame.Size = UDim2.new(0, 400, 0, 600)
-mainFrame.Position = UDim2.new(0.5, -200, 0.5, -300)
+mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0) -- Điều chỉnh vị trí để hub nằm ở giữa
+mainFrame.AnchorPoint = Vector2.new(0.5, 0.5) -- Đặt anchor point để hub nằm chính giữa
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 mainFrame.BorderSizePixel = 0
 mainFrame.Visible = false
-mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 mainFrame.ClipsDescendants = true
 
 -- Bo tròn các góc
@@ -18,7 +24,7 @@ uiCorner.CornerRadius = UDim.new(0, 10)
 
 -- Thêm hiệu ứng mở/đóng hub
 local openCloseButton = Instance.new("ImageButton", screenGui)
-openCloseButton.Size = UDim2.new(0, 50, 0, 50)
+openCloseButton.Size = UDim2.new(0, 30, 0, 30)
 openCloseButton.Position = UDim2.new(0, 10, 0, 10)
 openCloseButton.Image = "rbxassetid://6031097225" -- ID của icon mặt trăng
 openCloseButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
@@ -29,6 +35,43 @@ uiCornerButton.CornerRadius = UDim.new(0, 10)
 
 openCloseButton.MouseButton1Click:Connect(function()
     mainFrame.Visible = not mainFrame.Visible
+end)
+
+-- Làm cho nút đóng/mở có thể di chuyển
+local isDragging = false
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    openCloseButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+openCloseButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        isDragging = true
+        dragStart = input.Position
+        startPos = openCloseButton.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                isDragging = false
+            end
+        end)
+    end
+end)
+
+openCloseButton.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if input == dragInput and isDragging then
+        update(input)
+    end
 end)
 
 -- Tạo tiêu đề
@@ -118,7 +161,7 @@ local function toggleESP(isOn)
                 elseif player.Backpack:FindFirstChild("Gun") or player.Character:FindFirstChild("Gun") then
                     espPlayer(player, Color3.fromRGB(0, 0, 255)) -- Sheriff (Blue)
                 elseif player.Backpack:FindFirstChild("Hero") or player.Character:FindFirstChild("Hero") then
-                    espPlayer(player, Color3.fromRGB(255, 255, 0)) -- Hero (Yellow/Purple)
+                    espPlayer(player, Color3.fromRGB(255, 255, 0)) -- Hero (Yellow)
                 else
                     espPlayer(player, Color3.fromRGB(0, 255, 0)) -- Innocents (Green)
                 end
@@ -137,26 +180,24 @@ local function toggleESP(isOn)
     end
 end
 
-local espButton = createToggleButton(mainFrame, UDim2.new(0, 200, 0, 50), UDim2.new(0, 100, 0, 400), "ESP", toggleESP)
+local espEnabled = false
+
+local espButton = createToggleButton(mainFrame, UDim2.new(0, 200, 0, 50), UDim2.new(0, 100, 0, 400), "ESP", function(isOn)
+    espEnabled = isOn
+    toggleESP(isOn)
+end)
 
 -- Chức năng Silent Aim
+local silentAimEnabled = false
+
 local function toggleSilentAim(isOn)
-    if isOn then
-        -- Code để kích hoạt Silent Aim ngắm murderer
-    else
-        -- Code để hủy kích hoạt Silent Aim ngắm murderer
-    end
+    silentAimEnabled = isOn
 end
 
 local silentAimButton = createToggleButton(mainFrame, UDim2.new(0, 200, 0, 50), UDim2.new(0, 100, 0, 500), "Silent Aim", toggleSilentAim)
 
--- Chức năng Throw Knife Aim
-local function toggleThrowKnifeAim(isOn)
-    if isOn then
-        -- Code để kích hoạt Throw Knife Aim ngắm ném dao
-    else
-        -- Code để hủy kích hoạt Throw Knife Aim ngắm ném dao
-    end
-end
-
-local throwKnifeAimButton = createToggleButton(mainFrame, UDim2.new(0, 200, 0, 50), UDim2.new(0, 100, 0, 600), "Throw Knife Aim", toggleThrowKnifeAim)
+game:GetService("UserInputService").InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 and silentAimEnabled then
+        local target = nil
+        for _, player in pairs(game.Players:GetPlayers
