@@ -1,8 +1,3 @@
--- Bắt đầu script
-if not game:IsLoaded() then
-    game.Loaded:Wait()
-end
-
 -- Tạo ScreenGui
 local screenGui = Instance.new("ScreenGui", game.CoreGui)
 screenGui.Name = "CrazyGameEditorHackGui"
@@ -188,16 +183,42 @@ local espButton = createToggleButton(mainFrame, UDim2.new(0, 200, 0, 50), UDim2.
 end)
 
 -- Chức năng Silent Aim
-local silentAimEnabled = false
-
 local function toggleSilentAim(isOn)
-    silentAimEnabled = isOn
+    if isOn then
+        -- Code để kích hoạt Silent Aim ngắm murderer
+    else
+        -- Code để hủy kích hoạt Silent Aim ngắm murderer
+    end
 end
 
 local silentAimButton = createToggleButton(mainFrame, UDim2.new(0, 200, 0, 50), UDim2.new(0, 100, 0, 500), "Silent Aim", toggleSilentAim)
 
-game:GetService("UserInputService").InputBegan:Connect(function(input, processed)
-    if processed then return end
-    if input.UserInputType == Enum.UserInputType.MouseButton1 and silentAimEnabled then
-        local target = nil
-        for _, player in pairs(game.Players:GetPlayers
+-- Chức năng Throw Knife Aim
+local function toggleThrowKnifeAim(isOn)
+    if isOn then
+        -- Code để kích hoạt Throw Knife Aim ngắm ném dao
+    else
+        -- Code để hủy kích hoạt Throw Knife Aim ngắm ném dao
+    end
+end
+
+local throwKnifeAimButton = createToggleButton(mainFrame, UDim2.new(0, 200, 0, 50), UDim2.new(0, 100, 0, 600), "Throw Knife Aim", toggleThrowKnifeAim)
+
+-- Theo dõi sự kiện CharacterAdded và CharacterRemoving
+local function onCharacterAdded(character)
+    if espEnabled then
+        toggleESP(true)
+    end
+end
+
+local function onCharacterRemoving(character)
+    toggleESP(false)
+end
+
+game.Players.LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+game.Players.LocalPlayer.CharacterRemoving:Connect(onCharacterRemoving)
+
+-- Đảm bảo ESP sẽ tự động tắt khi người chơi chết hoặc khi hết vòng
+if game.Players.LocalPlayer.Character then
+    onCharacterAdded(game.Players.LocalPlayer.Character)
+end
