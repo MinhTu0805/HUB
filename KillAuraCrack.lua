@@ -1,202 +1,219 @@
--- Cấu hình ban đầu
+-- Khởi tạo biến và dịch vụ cần thiết
+local connections = getgenv().configs and getgenv().configs.connection
+if connections then
+    local Disable = configs.Disable
+    for i, v in pairs(connections) do
+        v:Disconnect() 
+    end
+    Disable:Fire()
+    Disable:Destroy()
+    table.clear(configs)
+end
+
+local Disable = Instance.new("BindableEvent")
 getgenv().configs = {
     connections = {},
-    Disable = Instance.new("BindableEvent"),
-    Range = 15,
-    DeathCheck = true,
-    RandomizeDelay = true,
-    MinDelay = 0.05,
-    MaxDelay = 0.2,
-    Executors = {"Fluxus", "Delta", "CubiX"}, -- Danh sách các executors tương thích
-    Version = 1.0, -- Phiên bản hiện tại của script
+    Disable = Disable,
+    Size = Vector3.new(14, 14, 14),  -- Tăng phạm vi kill aura
+    DeathCheck = true
 }
 
--- Hàm kiểm tra môi trường executor
-local function checkExecutor()
-    local executor = identifyexecutor and identifyexecutor() or "Unknown"
-    for _, exec in ipairs(getgenv().configs.Executors) do
-        if exec == executor then
-            print("Script hoạt động trên executor: " .. executor)
-            return true
+local Players = cloneref(game:GetService("Players"))
+local RunService = cloneref(game:GetService("RunService"))
+local lp = Players.LocalPlayer
+local Run = true
+local Ignorelist = OverlapParams.new()
+Ignorelist.FilterType = Enum.RaycastFilterType.Include
+
+local function getchar(plr)
+    local plr = plr or lp
+    return plr.Character
+end
+
+local function gethumanoid(plr)
+    local char = plr:IsA("Model") and plr or getchar(plr)
+    if char then
+        return char:FindFirstChildWhichIsA("Humanoid")
+    end
+end
+
+local function IsAlive(Humanoid)
+    return Humanoid and Humanoid.Health > 0
+end
+
+local function GetTouchInterest(Tool)
+    return Tool and Tool:FindFirstChildWhichIsA("TouchTransmitter", true)
+end
+
+local function GetCharacters(LocalPlayerChar)
+    local Characters = {}
+    for _, v in ipairs(Players:GetPlayers()) do
+        if v ~= lp then
+            table.insert(Characters, getchar(v))
         end
     end
-    warn("Executor không được hỗ trợ: " .. executor)
-    return false
+    return Characters
 end
 
-if not checkExecutor() then
-    return
+local function Attack(Tool, TouchPart, ToTouch)
+    if Tool:IsDescendantOf(workspace) then
+        Tool:Activate()
+        firetouchinterest(TouchPart, ToTouch, 1)
+        firetouchinterest(TouchPart, ToTouch, 0)
+    end
 end
 
--- Thêm các phần của script như đã viết ở trên...
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local StarterGui = game:GetService("StarterGui")
+local function EnableGodMode()
+    local humanoid = gethumanoid(lp)
+    if humanoid then
+        humanoid.Health = humanoid.MaxHealth
+        humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+            if humanoid.Health < humanoid.MaxHealth then
+                humanoid.Health = humanoid.MaxHealth
+            end
+        end)
+    end
+end
 
--- Hàm thông báo mini
-local function createNotification()
-    local ScreenGui = Instance.new("ScreenGui")
-    local Frame = Instance.new("Frame")
-    local TextLabel = Instance.new("TextLabel")
-    local CloseButton = Instance.new("TextButton")
+-- Anti-Kick và Anti-AFK
+local vu = game:GetService("VirtualUser")
+lp.Idled:Connect(function()
+    vu:CaptureController()
+    vu:ClickButton2(Vector2.new())
+end)
 
-    ScreenGui.Parent = game.CoreGui
-    ScreenGui.Name = "MiniNotification"
-
-    Frame.Size = UDim2.new(0, 200, 0, 100)
-    Frame.Position = UDim2.new(0.5, -100, 0, 50)
-    Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    Frame.BackgroundTransparency = 0.5
-    Frame.BorderSizePixel = 0
-    Frame.Parent = ScreenGui
-
-    TextLabel.Size = UDim2.new(1, 0, 0.8, 0)
-    TextLabel.Position = UDim2.new(0, 0, 0)
-    TextLabel.BackgroundTransparency = 1
-    TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TextLabel.Text = "Script đã hoạt động!"
-    TextLabel.Font = Enum.Font.SourceSans
-    TextLabel.TextSize = 20
-    TextLabel.Parent = Frame
-
-    CloseButton.Size = UDim2.new(1, 0, 0.2, 0)
-    CloseButton.Position = UDim2.new(0, 0, 0.8, 0)
-    CloseButton.Text = "Đóng"
-    CloseButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-    CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    CloseButton.Font = Enum.Font.SourceSansBold
-    CloseButton.TextSize = 18
-    CloseButton.Parent = Frame
-
-    CloseButton.MouseButton1Click:Connect(function()
-        ScreenGui:Destroy()
-    end)
-
-    delay(10, function() -- Tự động đóng thông báo sau 10 giây
-        if ScreenGui then
-            ScreenGui:Destroy()
+-- AntiBan Nâng cao
+local function advancedAntiBan()
+    local OldNameCall
+    OldNameCall = hookmetamethod(game, "__namecall", function(self, ...)
+        local Method = getnamecallmethod()
+        if Method == "Kick" or Method == "ban" then
+            return nil
         end
+        return OldNameCall(self, ...)
     end)
 end
 
--- Hiển thị thông báo khi script được thực thi
+advancedAntiBan()
+EnableGodMode()
+
+table.insert(getgenv().configs.connections, Disable.Event:Connect(function()
+    Run = false
+end))
+
+-- Thông báo GUI khi script được thực thi với hiệu ứng
+local function createNotification()
+    local PlayerGui = lp:WaitForChild("PlayerGui")
+
+    -- Tạo màn hình GUI
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "NotificationGui"
+    screenGui.Parent = PlayerGui
+
+    -- Tạo khung chứa thông báo
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 0, 0, 0)
+    frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    frame.BorderSizePixel = 2
+    frame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+    frame.BackgroundTransparency = 0.15
+    frame.Parent = screenGui
+
+    -- Tạo góc bo tròn cho khung
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = frame
+
+    -- Hiệu ứng xuất hiện
+    frame:TweenSizeAndPosition(UDim2.new(0, 350, 0, 150), UDim2.new(0.5, -175, 0.5, -75), Enum.EasingDirection.Out, Enum.EasingStyle.Bounce, 0.5, true)
+
+    -- Tạo thông báo text
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, -40, 0.6, -20)
+    textLabel.Position = UDim2.new(0, 20, 0, 10)
+    textLabel.Text = "✨ Advanced Script is now running! ✨"
+    textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Font = Enum.Font.GothamBold
+    textLabel.TextSize = 18
+    textLabel.TextWrapped = true
+    textLabel.Parent = frame
+
+    -- Thêm nhãn hiển thị phiên bản script
+    local versionLabel = Instance.new("TextLabel")
+    versionLabel.Size = UDim2.new(1, -40, 0.2, -10)
+    versionLabel.Position = UDim2.new(0, 20, 0.7, 0)
+    versionLabel.Text = "Version: 3.4.0"
+    versionLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    versionLabel.BackgroundTransparency = 1
+    versionLabel.Font = Enum.Font.Gotham
+    versionLabel.TextSize = 14
+    versionLabel.TextWrapped = true
+    versionLabel.Parent = frame
+
+    -- Tạo nút đóng thông báo với nút "X"
+    local closeButton = Instance.new("TextButton")
+    closeButton.Size = UDim2.new(0, 30, 0, 30)
+    closeButton.Position = UDim2.new(1, -40, 0, 10)
+    closeButton.Text = "X"
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    closeButton.Font = Enum.Font.GothamBold
+    closeButton.TextSize = 16
+    closeButton.AutoButtonColor = false
+    closeButton.Parent = frame
+
+    -- Tạo góc bo tròn cho nút
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 6)
+    buttonCorner.Parent = closeButton
+
+    -- Thêm sự kiện để đóng thông báo
+    closeButton.MouseButton1Click:Connect(function()
+        frame:TweenSizeAndPosition(UDim2.new(0, 0, 0, 0), UDim2.new(0.5, 0, 0.5, 0), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 0.5, true, function()
+            screenGui:Destroy()
+        end)
+    end)
+
+    -- Tự động tắt thông báo sau 10 giây với hiệu ứng
+    delay(10, function()
+        frame:TweenSizeAndPosition(UDim2.new(0, 0, 0, 0), UDim2.new(0.5, 0, 0.5, 0), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 0.5, true, function()
+            screenGui:Destroy()
+        end)
+    end)
+end
+
+-- Gọi hàm tạo thông báo
 createNotification()
 
--- Hàm hỗ trợ lấy nhân vật và humanoid của người chơi
-local function getCharacter(player)
-    return player and player.Character
-end
+-- Vòng lặp chính của script
+while Run do
+    local char = getchar()
+    if IsAlive(gethumanoid(char)) then
+        local Tool = char and char:FindFirstChildWhichIsA("Tool")
+        local TouchInterest = Tool and GetTouchInterest(Tool)
 
-local function getHumanoid(character)
-    return character and character:FindFirstChildOfClass("Humanoid")
-end
+        if TouchInterest then
+            local TouchPart = TouchInterest.Parent
+            local Characters = GetCharacters(char)
+            Ignorelist.FilterDescendantsInstances = Characters
+            local InstancesInBox = workspace:GetPartBoundsInBox(TouchPart.CFrame, TouchPart.Size + getgenv().configs.Size, Ignorelist)
 
-local function isAlive(humanoid)
-    return humanoid and humanoid.Health > 0
-end
+            for _, v in ipairs(InstancesInBox) do
+                local Character = v:FindFirstAncestorWhichIsA("Model")
 
--- Hàm tìm kiếm kẻ thù gần nhất
-local function findClosestEnemy(range)
-    local closestEnemy, closestDistance = nil, range
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= Players.LocalPlayer then
-            local character = getCharacter(player)
-            if character and isAlive(getHumanoid(character)) then
-                local distance = (Players.LocalPlayer.Character.HumanoidRootPart.Position - character.HumanoidRootPart.Position).Magnitude
-                if distance < closestDistance then
-                    closestDistance = distance
-                    closestEnemy = character
+                if Character and table.find(Characters, Character) then
+                    if getgenv().configs.DeathCheck then                    
+                        if IsAlive(gethumanoid(Character)) then
+                            Attack(Tool, TouchPart, v)
+                        end
+                    else
+                        Attack(Tool, TouchPart, v)
+                    end
                 end
             end
         end
     end
-    return closestEnemy
+    RunService.Heartbeat:Wait()
 end
-
--- Hàm tấn công
-local function attack(target)
-    local tool = Players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
-    if tool and tool:IsDescendantOf(workspace) then
-        tool:Activate()
-        firetouchinterest(tool.Handle, target, 1)
-        if getgenv().configs.RandomizeDelay then
-            wait(math.random(getgenv().configs.MinDelay, getgenv().configs.MaxDelay))
-        else
-            wait(0.1)
-        end
-        firetouchinterest(tool.Handle, target, 0)
-    end
-end
-
--- Chức năng antiban nâng cao ByfronScript
-local function ByfronScript()
-    local initialPlaceId = game.PlaceId
-    local run = true
-
-    -- Kiểm tra lỗi dịch chuyển và dừng script
-    Players.LocalPlayer.OnTeleport:Connect(function(status)
-        if status == Enum.TeleportState.Failed then
-            run = false
-            warn("Teleport failed, possible detection.")
-        end
-    end)
-
-    -- Giám sát kết nối mạng
-    game:GetService("NetworkClient").ChildRemoved:Connect(function(child)
-        if child:IsA("Player") and game.PlaceId == initialPlaceId then
-            run = false
-            warn("Network instability detected, stopping script.")
-        end
-    end)
-
-    -- Theo dõi các thay đổi trong PlaceId
-    game:GetService("Workspace").ChildAdded:Connect(function()
-        if game.PlaceId ~= initialPlaceId then
-            run = false
-            warn("Detected place change, stopping script.")
-        end
-    end)
-
-    return run
-end
-
--- Khởi động chức năng Kill Aura
-local function killAura()
-    local run = ByfronScript()
-    while run do
-        local target = findClosestEnemy(getgenv().configs.Range)
-        if target then
-            attack(target)
-        end
-        RunService.Heartbeat:Wait()
-    end
-end
-
--- Khởi chạy script Kill Aura
-spawn(killAura)
-
--- Khởi động tính năng tự học
-local function autoImprove()
-    -- Ví dụ: Điều chỉnh phạm vi tấn công dựa trên số lần thành công hoặc thất bại
-    local successCount, failCount = 0, 0
-    while true do
-        RunService.Heartbeat:Wait()
-        if successCount > 10 then
-            getgenv().configs.Range = getgenv().configs.Range + 1
-            successCount = 0
-            print("Tăng phạm vi tấn công: ", getgenv().configs.Range)
-        elseif failCount > 5 then
-            getgenv().configs.Range = getgenv().configs.Range - 1
-            failCount = 0
-            print("Giảm phạm vi tấn công: ", getgenv().configs.Range)
-        end
-    end
-end
-
--- Khởi chạy auto-improve để script tự học
-spawn(autoImprove)
-
--- Kết nối sự kiện Disable
-table.insert(getgenv().configs.connections, getgenv().configs.Disable.Event:Connect(function()
-    run = false
-end))
