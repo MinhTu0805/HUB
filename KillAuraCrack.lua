@@ -131,106 +131,104 @@ local function preCheck()
     return true
 end
 
--- Gọi hàm kiểm tra trước khi chạy script
+-- Tạo giao diện thông báo đẹp
+local function createNotification()
+    local PlayerGui = lp:WaitForChild("PlayerGui")
+
+    -- Tạo màn hình GUI
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "NotificationGui"
+    screenGui.Parent = PlayerGui
+
+    -- Tạo khung chứa thông báo
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 0, 0, 0)
+    frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    frame.AnchorPoint = Vector2.new(0.5, 0.5)
+    frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    frame.BorderSizePixel = 0
+    frame.BackgroundTransparency = 0.3
+    frame.Parent = screenGui
+
+    -- Tạo góc bo tròn cho khung
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 20)
+    corner.Parent = frame
+
+    -- Hiệu ứng xuất hiện
+    frame:TweenSizeAndPosition(UDim2.new(0, 400, 0, 200), UDim2.new(0.5, -200, 0.5, -100), Enum.EasingDirection.Out, Enum.EasingStyle.Bounce, 0.7, true)
+
+    -- Tạo hiệu ứng gradient cho khung
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new({Color3.fromRGB(255, 100, 100), Color3.fromRGB(100, 100, 255)})
+    gradient.Rotation = 45
+    gradient.Parent = frame
+
+    -- Tạo thông báo text
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, -40, 0.7, -30)
+    textLabel.Position = UDim2.new(0, 20, 0, 20)
+    textLabel.Text = "🚀 Advanced Script v13.43 is now running! 🚀"
+    textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Font = Enum.Font.GothamBold
+    textLabel.TextSize = 22
+    textLabel.TextWrapped = true
+    textLabel.Parent = frame
+
+    -- Thêm nhãn hiển thị phiên bản script
+    local versionLabel = Instance.new("TextLabel")
+    versionLabel.Size = UDim2.new(1, -40, 0.2, -10)
+    versionLabel.Position = UDim2.new(0, 20, 0.75, 0)
+    versionLabel.Text = "Version: 13.43"
+    versionLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+    versionLabel.BackgroundTransparency = 1
+    versionLabel.Font = Enum.Font.Gotham
+    versionLabel.TextSize = 18
+    versionLabel.TextWrapped = true
+    versionLabel.Parent = frame
+
+    -- Tạo nút đóng thông báo với nút "X"
+    local closeButton = Instance.new("TextButton")
+    closeButton.Size = UDim2.new(0, 35, 0, 35)
+    closeButton.Position = UDim2.new(1, -45, 0, 10)
+    closeButton.Text = "X"
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    closeButton.Font = Enum.Font.GothamBold
+    closeButton.TextSize = 20
+    closeButton.AutoButtonColor = false
+    closeButton.Parent = frame
+
+    -- Tạo góc bo tròn cho nút
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 10)
+    buttonCorner.Parent = closeButton
+
+    -- Thêm sự kiện để đóng thông báo
+    closeButton.MouseButton1Click:Connect(function()
+        frame:TweenSizeAndPosition(UDim2.new(0, 0, 0, 0), UDim2.new(0.5, 0, 0.5, 0), Enum.EasingDirection.In, Enum.EasingStyle.Quart, 0.7, true, function()
+            screenGui:Destroy()
+        end)
+    end)
+
+    -- Tự động tắt thông báo sau 10 giây với hiệu ứng
+    delay(10, function()
+        frame:TweenSizeAndPosition(UDim2.new(0, 0, 0, 0), UDim2.new(0.5, 0, 0.5, 0), Enum.EasingDirection.In, Enum.EasingStyle.Quart, 0.7, true, function()
+            screenGui:Destroy()
+        end)
+    end)
+end
+
+-- Quy trình kiểm tra trước khi chạy script
 if preCheck() then
     advancedAntiBan()
     EnableGodMode()
-    
+    createNotification()
+
     table.insert(getgenv().configs.connections, Disable.Event:Connect(function()
         Run = false
     end))
-
-    -- Thông báo GUI khi script được thực thi với hiệu ứng
-    local function createNotification()
-        local PlayerGui = lp:WaitForChild("PlayerGui")
-
-        -- Tạo màn hình GUI
-        local screenGui = Instance.new("ScreenGui")
-        screenGui.Name = "NotificationGui"
-        screenGui.Parent = PlayerGui
-
-        -- Tạo khung chứa thông báo
-        local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(0, 0, 0, 0)
-        frame.Position = UDim2.new(0.5, 0, 0.5, 0)
-        frame.AnchorPoint = Vector2.new(0.5, 0.5)
-        frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        frame.BorderSizePixel = 0
-        frame.BackgroundTransparency = 0.3
-        frame.Parent = screenGui
-
-        -- Tạo góc bo tròn cho khung
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 20)
-        corner.Parent = frame
-
-        -- Hiệu ứng xuất hiện
-        frame:TweenSizeAndPosition(UDim2.new(0, 400, 0, 200), UDim2.new(0.5, -200, 0.5, -100), Enum.EasingDirection.Out, Enum.EasingStyle.Bounce, 0.7, true)
-
-        -- Tạo hiệu ứng gradient cho khung
-        local gradient = Instance.new("UIGradient")
-        gradient.Color = ColorSequence.new({Color3.fromRGB(255, 100, 100), Color3.fromRGB(100, 100, 255)})
-        gradient.Rotation = 45
-        gradient.Parent = frame
-
-        -- Tạo thông báo text
-        local textLabel = Instance.new("TextLabel")
-        textLabel.Size = UDim2.new(1, -40, 0.7, -30)
-        textLabel.Position = UDim2.new(0, 20, 0, 20)
-        textLabel.Text = "🚀 Advanced Script v13.43 is now running! 🚀"
-        textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        textLabel.BackgroundTransparency = 1
-        textLabel.Font = Enum.Font.GothamBold
-        textLabel.TextSize = 22
-        textLabel.TextWrapped = true
-        textLabel.Parent = frame
-
-        -- Thêm nhãn hiển thị phiên bản script
-        local versionLabel = Instance.new("TextLabel")
-        versionLabel.Size = UDim2.new(1, -40, 0.2, -10)
-        versionLabel.Position = UDim2.new(0, 20, 0.75, 0)
-        versionLabel.Text = "Version: 13.43"
-        versionLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
-        versionLabel.BackgroundTransparency = 1
-        versionLabel.Font = Enum.Font.Gotham
-        versionLabel.TextSize = 18
-        versionLabel.TextWrapped = true
-        versionLabel.Parent = frame
-
-        -- Tạo nút đóng thông báo với nút "X"
-        local closeButton = Instance.new("TextButton")
-        closeButton.Size = UDim2.new(0, 35, 0, 35)
-        closeButton.Position = UDim2.new(1, -45, 0, 10)
-        closeButton.Text = "X"
-        closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-        closeButton.Font = Enum.Font.GothamBold
-        closeButton.TextSize = 20
-        closeButton.AutoButtonColor = false
-        closeButton.Parent = frame
-
-        -- Tạo góc bo tròn cho nút
-        local buttonCorner = Instance.new("UICorner")
-        buttonCorner.CornerRadius = UDim.new(0, 10)
-        buttonCorner.Parent = closeButton
-
-        -- Thêm sự kiện để đóng thông báo
-        closeButton.MouseButton1Click:Connect(function()
-            frame:TweenSizeAndPosition(UDim2.new(0, 0, 0, 0), UDim2.new(0.5, 0, 0.5, 0), Enum.EasingDirection.In, Enum.EasingStyle.Quart, 0.7, true, function()
-                screenGui:Destroy()
-            end)
-        end)
-
-        -- Tự động tắt thông báo sau 10 giây với hiệu ứng
-        delay(10, function()
-            frame:TweenSizeAndPosition(UDim2.new(0, 0, 0, 0), UDim2.new(0.5, 0, 0.5, 0), Enum.EasingDirection.In, Enum.EasingStyle.Quart, 0.7, true, function()
-                screenGui:Destroy()
-            end)
-        end)
-    end
-
-    -- Gọi hàm tạo thông báo
-    createNotification()
 
     -- Vòng lặp chính của script
     local lastUpdateTime = tick()
