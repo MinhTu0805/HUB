@@ -14,7 +14,7 @@ local Disable = Instance.new("BindableEvent")
 getgenv().configs = {
     connections = {},
     Disable = Disable,
-    Size = Vector3.new(18, 18, 18),  -- Tăng phạm vi kill aura để chém xa hơn
+    Size = Vector3.new(100, 100, 100),  -- Tăng phạm vi kill aura để chém xa hơn và giết tất cả người chơi
     DeathCheck = true
 }
 
@@ -63,7 +63,7 @@ local function Attack(Tool, TouchPart, ToTouch)
     end
 end
 
--- God Mode tối đa: Bất tử và không bao giờ chết
+-- God Mode tối đa và Auto-Heal
 local function EnableMaxGodMode()
     local humanoid = gethumanoid(lp)
     if humanoid then
@@ -77,7 +77,7 @@ local function EnableMaxGodMode()
     end
 end
 
--- Anti-Kick và Anti-AFK
+-- Anti-Kick, Anti-AFK
 local vu = game:GetService("VirtualUser")
 lp.Idled:Connect(function()
     vu:CaptureController()
@@ -146,7 +146,7 @@ local function createAdvancedNotification()
     local versionLabel = Instance.new("TextLabel")
     versionLabel.Size = UDim2.new(1, -40, 0.2, -10)
     versionLabel.Position = UDim2.new(0, 20, 0.7, 0)
-    versionLabel.Text = "Version: v13.74 (Premium)"
+    versionLabel.Text = "Version: v13.76 (Premium)"
     versionLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
     versionLabel.BackgroundTransparency = 1
     versionLabel.Font = Enum.Font.Gotham
@@ -186,10 +186,8 @@ local function createAdvancedNotification()
     end)
 end
 
--- Gọi hàm tạo thông báo nâng cao
 createAdvancedNotification()
 
--- Vòng lặp chính của script
 while Run do
     local char = getchar()
     if IsAlive(gethumanoid(char)) then
@@ -202,17 +200,16 @@ while Run do
             Ignorelist.FilterDescendantsInstances = Characters
             local InstancesInBox = workspace:GetPartBoundsInBox(TouchPart.CFrame, TouchPart.Size + getgenv().configs.Size, Ignorelist)
 
-            local hitCount = 0
             for _, v in ipairs(InstancesInBox) do
                 local Character = v:FindFirstAncestorWhichIsA("Model")
 
-                if Character and table.find(Characters, Character) and hitCount < 3 then
-                    if getgenv().configs.DeathCheck and IsAlive(gethumanoid(Character)) then
+                if table.find(Characters, Character) then
+                    if getgenv().configs.DeathCheck then                    
+                        if IsAlive(gethumanoid(Character)) then
+                            Attack(Tool, TouchPart, v)
+                        end
+                    else
                         Attack(Tool, TouchPart, v)
-                        hitCount = hitCount + 1
-                    elseif not getgenv().configs.DeathCheck then
-                        Attack(Tool, TouchPart, v)
-                        hitCount = hitCount + 1
                     end
                 end
             end
