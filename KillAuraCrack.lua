@@ -14,7 +14,7 @@ local Disable = Instance.new("BindableEvent")
 getgenv().configs = {
     connections = {},
     Disable = Disable,
-    Size = Vector3.new(20, 20, 20),  -- Tăng phạm vi kill aura
+    Size = Vector3.new(18, 18, 18),  -- Tăng phạm vi kill aura để chém xa hơn
     DeathCheck = true
 }
 
@@ -63,15 +63,17 @@ local function Attack(Tool, TouchPart, ToTouch)
     end
 end
 
-local function EnableGodMode()
+-- God Mode tối đa: Bất tử và không bao giờ chết
+local function EnableMaxGodMode()
     local humanoid = gethumanoid(lp)
     if humanoid then
-        humanoid.Health = humanoid.MaxHealth
         humanoid:GetPropertyChangedSignal("Health"):Connect(function()
             if humanoid.Health < humanoid.MaxHealth then
                 humanoid.Health = humanoid.MaxHealth
             end
         end)
+        humanoid.Health = humanoid.MaxHealth
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
     end
 end
 
@@ -95,49 +97,48 @@ local function advancedAntiBan()
 end
 
 advancedAntiBan()
-EnableGodMode()
+EnableMaxGodMode()
 
 table.insert(getgenv().configs.connections, Disable.Event:Connect(function()
     Run = false
 end))
 
--- Thông báo GUI khi script được thực thi với hiệu ứng
-local function createNotification()
+-- Thông báo GUI khi script được thực thi với hiệu ứng nâng cao
+local function createAdvancedNotification()
     local PlayerGui = lp:WaitForChild("PlayerGui")
 
     -- Tạo màn hình GUI
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "NotificationGui"
+    screenGui.Name = "AdvancedNotificationGui"
     screenGui.Parent = PlayerGui
 
     -- Tạo khung chứa thông báo
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(0, 0, 0, 0)
     frame.Position = UDim2.new(0.5, 0, 0.5, 0)
-    frame.AnchorPoint = Vector2.new(0.5, 0.5)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
     frame.BorderSizePixel = 2
-    frame.BorderColor3 = Color3.fromRGB(255, 255, 255)
-    frame.BackgroundTransparency = 0.15
+    frame.BorderColor3 = Color3.fromRGB(0, 255, 0)
+    frame.BackgroundTransparency = 0.1
     frame.Parent = screenGui
 
     -- Tạo góc bo tròn cho khung
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 10)
+    corner.CornerRadius = UDim.new(0, 12)
     corner.Parent = frame
 
-    -- Hiệu ứng xuất hiện
-    frame:TweenSizeAndPosition(UDim2.new(0, 350, 0, 150), UDim2.new(0.5, -175, 0.5, -75), Enum.EasingDirection.Out, Enum.EasingStyle.Bounce, 0.5, true)
+    -- Hiệu ứng xuất hiện nâng cao
+    frame:TweenSizeAndPosition(UDim2.new(0, 400, 0, 180), UDim2.new(0.5, -200, 0.5, -90), Enum.EasingDirection.Out, Enum.EasingStyle.Elastic, 0.6, true)
 
     -- Tạo thông báo text
     local textLabel = Instance.new("TextLabel")
     textLabel.Size = UDim2.new(1, -40, 0.6, -20)
     textLabel.Position = UDim2.new(0, 20, 0, 10)
-    textLabel.Text = "✨ Advanced Script is now running! ✨"
+    textLabel.Text = "🚀 Kill Aura Crack | By Tú TM 🚀"
     textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     textLabel.BackgroundTransparency = 1
-    textLabel.Font = Enum.Font.GothamBold
-    textLabel.TextSize = 18
+    textLabel.Font = Enum.Font.GothamBlack
+    textLabel.TextSize = 20
     textLabel.TextWrapped = true
     textLabel.Parent = frame
 
@@ -145,11 +146,11 @@ local function createNotification()
     local versionLabel = Instance.new("TextLabel")
     versionLabel.Size = UDim2.new(1, -40, 0.2, -10)
     versionLabel.Position = UDim2.new(0, 20, 0.7, 0)
-    versionLabel.Text = "Version: 3.4.0"
-    versionLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    versionLabel.Text = "Version: v13.74 (Premium)"
+    versionLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
     versionLabel.BackgroundTransparency = 1
     versionLabel.Font = Enum.Font.Gotham
-    versionLabel.TextSize = 14
+    versionLabel.TextSize = 16
     versionLabel.TextWrapped = true
     versionLabel.Parent = frame
 
@@ -172,21 +173,21 @@ local function createNotification()
 
     -- Thêm sự kiện để đóng thông báo
     closeButton.MouseButton1Click:Connect(function()
-        frame:TweenSizeAndPosition(UDim2.new(0, 0, 0, 0), UDim2.new(0.5, 0, 0.5, 0), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 0.5, true, function()
+        frame:TweenSizeAndPosition(UDim2.new(0, 0, 0, 0), UDim2.new(0.5, 0, 0.5, 0), Enum.EasingDirection.In, Enum.EasingStyle.Back, 0.5, true, function()
             screenGui:Destroy()
         end)
     end)
 
-    -- Tự động tắt thông báo sau 10 giây với hiệu ứng
+    -- Tự động tắt thông báo sau 10 giây với hiệu ứng nâng cao
     delay(10, function()
-        frame:TweenSizeAndPosition(UDim2.new(0, 0, 0, 0), UDim2.new(0.5, 0, 0.5, 0), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 0.5, true, function()
+        frame:TweenSizeAndPosition(UDim2.new(0, 0, 0, 0), UDim2.new(0.5, 0, 0.5, 0), Enum.EasingDirection.In, Enum.EasingStyle.Back, 0.5, true, function()
             screenGui:Destroy()
         end)
     end)
 end
 
--- Gọi hàm tạo thông báo
-createNotification()
+-- Gọi hàm tạo thông báo nâng cao
+createAdvancedNotification()
 
 -- Vòng lặp chính của script
 while Run do
@@ -201,16 +202,17 @@ while Run do
             Ignorelist.FilterDescendantsInstances = Characters
             local InstancesInBox = workspace:GetPartBoundsInBox(TouchPart.CFrame, TouchPart.Size + getgenv().configs.Size, Ignorelist)
 
+            local hitCount = 0
             for _, v in ipairs(InstancesInBox) do
                 local Character = v:FindFirstAncestorWhichIsA("Model")
 
-                if Character and table.find(Characters, Character) then
-                    if getgenv().configs.DeathCheck then
-                        if IsAlive(gethumanoid(Character)) then
-                            Attack(Tool, TouchPart, v)
-                        end
-                    else
+                if Character and table.find(Characters, Character) and hitCount < 3 then
+                    if getgenv().configs.DeathCheck and IsAlive(gethumanoid(Character)) then
                         Attack(Tool, TouchPart, v)
+                        hitCount = hitCount + 1
+                    elseif not getgenv().configs.DeathCheck then
+                        Attack(Tool, TouchPart, v)
+                        hitCount = hitCount + 1
                     end
                 end
             end
