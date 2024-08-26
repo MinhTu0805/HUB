@@ -77,13 +77,7 @@ local function EnableMaxGodMode()
     end
 end
 
--- Anti-Kick, Anti-AFK nâng cao
-local vu = game:GetService("VirtualUser")
-lp.Idled:Connect(function()
-    vu:CaptureController()
-    vu:ClickButton2(Vector2.new())
-end)
-
+-- Xử lý các lệnh Method bất thường
 local function advancedAntiBan()
     local OldNameCall
     OldNameCall = hookmetamethod(game, "__namecall", function(self, ...)
@@ -122,7 +116,7 @@ local function createAdvancedNotification(version)
 
     -- Tạo khung chứa thông báo
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 0, 0, 0)
+    frame.Size = UDim2.new(0, 250, 0, 100)
     frame.Position = UDim2.new(0.05, 0, 0.95, -50)  -- Vị trí ở góc trái dưới màn hình
     frame.AnchorPoint = Vector2.new(0, 1)
     frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
