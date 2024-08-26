@@ -14,7 +14,7 @@ local Disable = Instance.new("BindableEvent")
 getgenv().configs = {
     connections = {},
     Disable = Disable,
-    Size = Vector3.new(200, 200, 200),  -- Tăng phạm vi kill aura để chém xa hơn và giết tất cả người chơi
+    Size = Vector3.new(100, 100, 100),  -- Tăng phạm vi kill aura để chém xa hơn và giết tất cả người chơi
     DeathCheck = true
 }
 
@@ -77,36 +77,8 @@ local function EnableMaxGodMode()
     end
 end
 
--- Xử lý các lệnh Method bất thường
-local function advancedAntiBan()
-    local OldNameCall
-    OldNameCall = hookmetamethod(game, "__namecall", function(self, ...)
-        local Method = getnamecallmethod()
-        local args = {...}
-        
-        -- Ngăn chặn các lệnh "Kick" hoặc các phương thức khác
-        if Method == "Kick" or string.find(Method, "Ban") or string.find(Method, "kick") then
-            return nil
-        end
-        
-        -- Xử lý các lệnh Method bất thường
-        if Method == "FireServer" and self.Name == "RemoteEventName" then
-            return nil
-        end
-        
-        return OldNameCall(self, unpack(args))
-    end)
-end
-
-advancedAntiBan()
-EnableMaxGodMode()
-
-table.insert(getgenv().configs.connections, Disable.Event:Connect(function()
-    Run = false
-end))
-
 -- Thông báo GUI khi script được thực thi với hiệu ứng nâng cao
-local function createAdvancedNotification(version)
+local function createAdvancedNotification()
     local PlayerGui = lp:WaitForChild("PlayerGui")
 
     -- Tạo màn hình GUI
@@ -116,9 +88,8 @@ local function createAdvancedNotification(version)
 
     -- Tạo khung chứa thông báo
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 250, 0, 100)
-    frame.Position = UDim2.new(0.05, 0, 0.95, -50)  -- Vị trí ở góc trái dưới màn hình
-    frame.AnchorPoint = Vector2.new(0, 1)
+    frame.Size = UDim2.new(0, 0, 0, 0)
+    frame.Position = UDim2.new(0.5, 0, 0.5, 0)
     frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
     frame.BorderSizePixel = 2
     frame.BorderColor3 = Color3.fromRGB(0, 255, 0)
@@ -131,42 +102,65 @@ local function createAdvancedNotification(version)
     corner.Parent = frame
 
     -- Hiệu ứng xuất hiện nâng cao
-    frame:TweenSizeAndPosition(UDim2.new(0, 250, 0, 100), UDim2.new(0.05, 0, 0.95, -50), Enum.EasingDirection.Out, Enum.EasingStyle.Elastic, 0.6, true)
+    frame:TweenSizeAndPosition(UDim2.new(0, 400, 0, 180), UDim2.new(0.5, -200, 0.5, -90), Enum.EasingDirection.Out, Enum.EasingStyle.Elastic, 0.6, true)
 
     -- Tạo thông báo text
     local textLabel = Instance.new("TextLabel")
-    textLabel.Size = UDim2.new(1, -20, 0.6, -10)
-    textLabel.Position = UDim2.new(0, 10, 0, 5)
+    textLabel.Size = UDim2.new(1, -40, 0.6, -20)
+    textLabel.Position = UDim2.new(0, 20, 0, 10)
     textLabel.Text = "🚀 Kill Aura Crack | By Tú TM 🚀"
     textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     textLabel.BackgroundTransparency = 1
     textLabel.Font = Enum.Font.GothamBlack
-    textLabel.TextSize = 18
+    textLabel.TextSize = 20
     textLabel.TextWrapped = true
     textLabel.Parent = frame
 
     -- Thêm nhãn hiển thị phiên bản script
     local versionLabel = Instance.new("TextLabel")
-    versionLabel.Size = UDim2.new(1, -20, 0.3, -5)
-    versionLabel.Position = UDim2.new(0, 10, 0.6, 0)
-    versionLabel.Text = "Phiên bản: " .. version
+    versionLabel.Size = UDim2.new(1, -40, 0.2, -10)
+    versionLabel.Position = UDim2.new(0, 20, 0.7, 0)
+    versionLabel.Text = "Version: v13.77 (Fire)"
     versionLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
     versionLabel.BackgroundTransparency = 1
     versionLabel.Font = Enum.Font.Gotham
-    versionLabel.TextSize = 14
+    versionLabel.TextSize = 16
     versionLabel.TextWrapped = true
     versionLabel.Parent = frame
 
+    -- Tạo nút đóng thông báo với nút "X"
+    local closeButton = Instance.new("TextButton")
+    closeButton.Size = UDim2.new(0, 30, 0, 30)
+    closeButton.Position = UDim2.new(1, -40, 0, 10)
+    closeButton.Text = "X"
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    closeButton.Font = Enum.Font.GothamBold
+    closeButton.TextSize = 16
+    closeButton.AutoButtonColor = false
+    closeButton.Parent = frame
+
+    -- Tạo góc bo tròn cho nút
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 6)
+    buttonCorner.Parent = closeButton
+
+    -- Thêm sự kiện để đóng thông báo
+    closeButton.MouseButton1Click:Connect(function()
+        frame:TweenSizeAndPosition(UDim2.new(0, 0, 0, 0), UDim2.new(0.5, 0, 0.5, 0), Enum.EasingDirection.In, Enum.EasingStyle.Back, 0.5, true, function()
+            screenGui:Destroy()
+        end)
+    end)
+
     -- Tự động tắt thông báo sau 10 giây với hiệu ứng nâng cao
     delay(10, function()
-        frame:TweenSizeAndPosition(UDim2.new(0, 0, 0, 0), UDim2.new(0.05, 0, 0.95, -50), Enum.EasingDirection.In, Enum.EasingStyle.Back, 0.5, true, function()
+        frame:TweenSizeAndPosition(UDim2.new(0, 0, 0, 0), UDim2.new(0.5, 0, 0.5, 0), Enum.EasingDirection.In, Enum.EasingStyle.Back, 0.5, true, function()
             screenGui:Destroy()
         end)
     end)
 end
 
--- Gọi hàm để hiển thị thông báo version script
-createAdvancedNotification("v13.78 (Premium)")
+createAdvancedNotification()
 
 while Run do
     local char = getchar()
