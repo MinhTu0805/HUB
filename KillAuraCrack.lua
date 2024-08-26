@@ -14,7 +14,7 @@ local Disable = Instance.new("BindableEvent")
 getgenv().configs = {
     connections = {},
     Disable = Disable,
-    Size = Vector3.new(100, 100, 100),  -- Tăng phạm vi kill aura để chém xa hơn và giết tất cả người chơi
+    Size = Vector3.new(18, 18, 18),  -- Tăng phạm vi kill aura để chém xa hơn
     DeathCheck = true
 }
 
@@ -63,7 +63,7 @@ local function Attack(Tool, TouchPart, ToTouch)
     end
 end
 
--- God Mode tối đa và Auto-Heal
+-- God Mode tối đa: Bất tử và không bao giờ chết
 local function EnableMaxGodMode()
     local humanoid = gethumanoid(lp)
     if humanoid then
@@ -76,6 +76,32 @@ local function EnableMaxGodMode()
         humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
     end
 end
+
+-- Anti-Kick và Anti-AFK
+local vu = game:GetService("VirtualUser")
+lp.Idled:Connect(function()
+    vu:CaptureController()
+    vu:ClickButton2(Vector2.new())
+end)
+
+-- AntiBan Nâng cao
+local function advancedAntiBan()
+    local OldNameCall
+    OldNameCall = hookmetamethod(game, "__namecall", function(self, ...)
+        local Method = getnamecallmethod()
+        if Method == "Kick" or Method == "ban" then
+            return nil
+        end
+        return OldNameCall(self, ...)
+    end)
+end
+
+advancedAntiBan()
+EnableMaxGodMode()
+
+table.insert(getgenv().configs.connections, Disable.Event:Connect(function()
+    Run = false
+end))
 
 -- Thông báo GUI khi script được thực thi với hiệu ứng nâng cao
 local function createAdvancedNotification()
@@ -160,8 +186,10 @@ local function createAdvancedNotification()
     end)
 end
 
+-- Gọi hàm tạo thông báo nâng cao
 createAdvancedNotification()
 
+-- Vòng lặp chính của script
 while Run do
     local char = getchar()
     if IsAlive(gethumanoid(char)) then
@@ -174,16 +202,17 @@ while Run do
             Ignorelist.FilterDescendantsInstances = Characters
             local InstancesInBox = workspace:GetPartBoundsInBox(TouchPart.CFrame, TouchPart.Size + getgenv().configs.Size, Ignorelist)
 
+            local hitCount = 0
             for _, v in ipairs(InstancesInBox) do
                 local Character = v:FindFirstAncestorWhichIsA("Model")
 
-                if table.find(Characters, Character) then
-                    if getgenv().configs.DeathCheck then                    
-                        if IsAlive(gethumanoid(Character)) then
-                            Attack(Tool, TouchPart, v)
-                        end
-                    else
+                if Character and table.find(Characters, Character) and hitCount < 3 then
+                    if getgenv().configs.DeathCheck and IsAlive(gethumanoid(Character)) then
                         Attack(Tool, TouchPart, v)
+                        hitCount = hitCount + 1
+                    elseif not getgenv().configs.DeathCheck then
+                        Attack(Tool, TouchPart, v)
+                        hitCount = hitCount + 1
                     end
                 end
             end
