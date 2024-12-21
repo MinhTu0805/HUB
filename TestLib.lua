@@ -1,184 +1,175 @@
 local MyLibrary = {}
 
--- Tạo giao diện Hub chính
-function MyLibrary:CreateHub(hubTitle)
+-- Tạo Hub
+function MyLibrary:CreateHub(title)
     local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "MyLibraryGui"
+    screenGui.Name = "LibraryHub"
     screenGui.Parent = PlayerGui
 
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 500, 0, 300)
-    mainFrame.Position = UDim2.new(0.5, -250, 0.5, -150)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-    mainFrame.Parent = screenGui
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 400, 0, 250)
+    frame.Position = UDim2.new(0.5, -200, 0.5, -125)
+    frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    frame.BorderSizePixel = 2
+    frame.BorderColor3 = Color3.fromRGB(0, 255, 0)
+    frame.Parent = screenGui
 
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 12)
-    corner.Parent = mainFrame
+    corner.Parent = frame
 
     local titleLabel = Instance.new("TextLabel")
-    titleLabel.Size = UDim2.new(1, 0, 0, 40)
-    titleLabel.Text = hubTitle
+    titleLabel.Size = UDim2.new(1, -20, 0, 40)
+    titleLabel.Position = UDim2.new(0, 10, 0, 10)
+    titleLabel.Text = title
     titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titleLabel.Font = Enum.Font.GothamBold
-    titleLabel.TextSize = 20
-    titleLabel.Parent = mainFrame
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Font = Enum.Font.GothamBlack
+    titleLabel.TextSize = 24
+    titleLabel.Parent = frame
 
-    return mainFrame
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Size = UDim2.new(1, -20, 1, -60)
+    contentFrame.Position = UDim2.new(0, 10, 0, 50)
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.Parent = frame
+
+    local uiListLayout = Instance.new("UIListLayout")
+    uiListLayout.Padding = UDim.new(0, 10)
+    uiListLayout.Parent = contentFrame
+
+    return {Hub = screenGui, Content = contentFrame}
 end
 
--- Tạo Tab trong Hub
-function MyLibrary:CreateTab(parent, tabName)
-    local tab = Instance.new("Frame")
-    tab.Size = UDim2.new(1, 0, 0, 30)
-    tab.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    tab.Parent = parent
+-- Tạo Tab (giống các thành phần trong giao diện)
+function MyLibrary:CreateTab(hub, tabName)
+    local tabFrame = Instance.new("Frame")
+    tabFrame.Size = UDim2.new(1, 0, 0, 40)
+    tabFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    tabFrame.Parent = hub.Content
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = tabFrame
 
     local tabLabel = Instance.new("TextLabel")
     tabLabel.Size = UDim2.new(1, -10, 1, 0)
+    tabLabel.Position = UDim2.new(0, 5, 0, 0)
     tabLabel.Text = tabName
-    tabLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    tabLabel.Font = Enum.Font.Gotham
-    tabLabel.TextSize = 16
-    tabLabel.Parent = tab
+    tabLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    tabLabel.BackgroundTransparency = 1
+    tabLabel.Font = Enum.Font.GothamBold
+    tabLabel.TextSize = 18
+    tabLabel.Parent = tabFrame
 
-    return tab
+    return tabFrame
 end
 
 -- Tạo Button
-function MyLibrary:CreateButton(parent, buttonText, callback)
+function MyLibrary:CreateButton(tab, buttonName, callback)
     local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, -10, 0, 30)
-    button.Text = buttonText
+    button.Size = UDim2.new(1, 0, 0, 40)
+    button.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+    button.Text = buttonName
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
     button.Font = Enum.Font.Gotham
-    button.TextSize = 16
-    button.Parent = parent
+    button.TextSize = 18
+    button.Parent = tab
 
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
+    corner.CornerRadius = UDim.new(0, 6)
     corner.Parent = button
 
-    button.MouseButton1Click:Connect(callback)
-    return button
+    button.MouseButton1Click:Connect(function()
+        pcall(callback)
+    end)
 end
 
 -- Tạo Slider
-function MyLibrary:CreateSlider(parent, sliderText, min, max, callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, -10, 0, 50)
-    frame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    frame.Parent = parent
+function MyLibrary:CreateSlider(tab, sliderName, min, max, callback)
+    local sliderFrame = Instance.new("Frame")
+    sliderFrame.Size = UDim2.new(1, 0, 0, 60)
+    sliderFrame.BackgroundTransparency = 1
+    sliderFrame.Parent = tab
 
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.6, 0, 0.5, 0)
-    label.Position = UDim2.new(0, 5, 0, 5)
-    label.Text = sliderText
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 14
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
+    local sliderLabel = Instance.new("TextLabel")
+    sliderLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    sliderLabel.Position = UDim2.new(0, 0, 0, 0)
+    sliderLabel.Text = sliderName
+    sliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    sliderLabel.BackgroundTransparency = 1
+    sliderLabel.Font = Enum.Font.Gotham
+    sliderLabel.TextSize = 16
+    sliderLabel.Parent = sliderFrame
 
-    local slider = Instance.new("Frame")
-    slider.Size = UDim2.new(0.9, 0, 0.3, 0)
-    slider.Position = UDim2.new(0.05, 0, 0.6, 0)
-    slider.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-    slider.Parent = frame
+    local slider = Instance.new("TextButton")
+    slider.Size = UDim2.new(1, 0, 0.5, -10)
+    slider.Position = UDim2.new(0, 0, 0.5, 5)
+    slider.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    slider.Text = tostring(min)
+    slider.TextColor3 = Color3.fromRGB(255, 255, 255)
+    slider.Font = Enum.Font.Gotham
+    slider.TextSize = 16
+    slider.Parent = sliderFrame
 
-    local knob = Instance.new("Frame")
-    knob.Size = UDim2.new(0, 10, 1, 0)
-    knob.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-    knob.Parent = slider
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = slider
 
-    local value = min
-    knob.Position = UDim2.new(0, 0, 0, 0)
+    local currentValue = min
 
-    slider.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            local connection
-            connection = game:GetService("UserInputService").InputChanged:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseMovement then
-                    local mouse = game.Players.LocalPlayer:GetMouse()
-                    local percent = math.clamp((mouse.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
-                    knob.Position = UDim2.new(percent, 0, 0, 0)
-                    value = math.floor(min + (max - min) * percent)
-                    callback(value)
-                end
-            end)
-
-            game:GetService("UserInputService").InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    connection:Disconnect()
-                end
-            end)
+    slider.MouseButton1Click:Connect(function()
+        currentValue = currentValue + 1
+        if currentValue > max then
+            currentValue = min
         end
+        slider.Text = tostring(currentValue)
+        pcall(callback, currentValue)
     end)
-
-    return frame
 end
 
 -- Tạo Dropdown
-function MyLibrary:CreateDropdown(parent, dropdownText, options, callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, -10, 0, 50)
-    frame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    frame.Parent = parent
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.6, 0, 1, 0)
-    label.Text = dropdownText
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 14
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(0.4, 0, 1, 0)
-    button.Position = UDim2.new(0.6, 0, 0, 0)
-    button.Text = "Select"
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-    button.Font = Enum.Font.Gotham
-    button.TextSize = 14
-    button.Parent = frame
-
+function MyLibrary:CreateDropdown(tab, dropdownName, options, callback)
     local dropdownFrame = Instance.new("Frame")
-    dropdownFrame.Size = UDim2.new(0.4, 0, 0, 0)
-    dropdownFrame.Position = UDim2.new(0.6, 0, 1, 0)
-    dropdownFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    dropdownFrame.ClipsDescendants = true
-    dropdownFrame.Parent = frame
+    dropdownFrame.Size = UDim2.new(1, 0, 0, 60)
+    dropdownFrame.BackgroundTransparency = 1
+    dropdownFrame.Parent = tab
 
-    local uiListLayout = Instance.new("UIListLayout")
-    uiListLayout.Parent = dropdownFrame
+    local dropdownLabel = Instance.new("TextLabel")
+    dropdownLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    dropdownLabel.Position = UDim2.new(0, 0, 0, 0)
+    dropdownLabel.Text = dropdownName
+    dropdownLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    dropdownLabel.BackgroundTransparency = 1
+    dropdownLabel.Font = Enum.Font.Gotham
+    dropdownLabel.TextSize = 16
+    dropdownLabel.Parent = dropdownFrame
 
-    button.MouseButton1Click:Connect(function()
-        dropdownFrame.Size = dropdownFrame.Size == UDim2.new(0.4, 0, 0, 0) and UDim2.new(0.4, 0, 0, #options * 30) or UDim2.new(0.4, 0, 0, 0)
+    local dropdown = Instance.new("TextButton")
+    dropdown.Size = UDim2.new(1, 0, 0.5, -10)
+    dropdown.Position = UDim2.new(0, 0, 0.5, 5)
+    dropdown.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    dropdown.Text = options[1]
+    dropdown.TextColor3 = Color3.fromRGB(255, 255, 255)
+    dropdown.Font = Enum.Font.Gotham
+    dropdown.TextSize = 16
+    dropdown.Parent = dropdownFrame
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = dropdown
+
+    local currentIndex = 1
+
+    dropdown.MouseButton1Click:Connect(function()
+        currentIndex = currentIndex + 1
+        if currentIndex > #options then
+            currentIndex = 1
+        end
+        dropdown.Text = options[currentIndex]
+        pcall(callback, options[currentIndex])
     end)
-
-    for _, option in ipairs(options) do
-        local optionButton = Instance.new("TextButton")
-        optionButton.Size = UDim2.new(1, 0, 0, 30)
-        optionButton.Text = option
-        optionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        optionButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-        optionButton.Font = Enum.Font.Gotham
-        optionButton.TextSize = 14
-        optionButton.Parent = dropdownFrame
-
-        optionButton.MouseButton1Click:Connect(function()
-            button.Text = option
-            dropdownFrame.Size = UDim2.new(0.4, 0, 0, 0)
-            callback(option)
-        end)
-    end
-
-    return frame
 end
 
 return MyLibrary
