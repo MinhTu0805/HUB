@@ -1,0 +1,7 @@
+Config = {
+    namescript = "MintHub v1.5.25",
+    logoscript = " 79958200710618",
+    tacgia = "MintXX"
+}
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/tngaming123/vesion/refs/heads/main/scriptbffree.lua"))()
