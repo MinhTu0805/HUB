@@ -1,0 +1,191 @@
+-- Load thư viện UI
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/wizard"))()
+
+local CoinFarmWindow = Library:NewWindow("MintHub | MM2 Farm")
+local MainSection = CoinFarmWindow:NewSection("Main Options")
+local DiscordSection = CoinFarmWindow:NewSection("Discord Server")
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:FindFirstChild("Humanoid") or character:WaitForChild("Humanoid")
+local teleportEnabled = false
+local tweenSpeed = 16
+local teleportDistanceThreshold = 50
+local farmMode = "Default Farm"
+local collectedCoins = 0
+
+-- Tạo textbox chỉnh tốc độ farm
+MainSection:CreateTextbox("Farm Speed", function(value)
+    local num = tonumber(value)
+    if num then
+        tweenSpeed = math.clamp(num, 1, 30)
+    end
+end)
+
+-- Tạo dropdown chọn chế độ farm
+MainSection:CreateDropdown("Farm Mode", {"Default Farm", "Safe Farm (Beta)"}, 1, function(selectedMode)
+    farmMode = selectedMode
+end)
+
+-- Hàm tìm CoinContainer
+local function findCoinContainer()
+    for _, child in pairs(workspace:GetChildren()) do
+        local coinContainer = child:FindFirstChild("CoinContainer")
+        if coinContainer then
+            return coinContainer
+        end
+    end
+    return nil
+end
+
+-- Hàm tìm coin gần nhất
+local function findNearestCoin(maxRadius)
+    local coinContainer = findCoinContainer()
+    if not coinContainer then return nil end
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return nil end
+    local nearestCoin, nearestDistance = nil, maxRadius or math.huge
+    for _, coin in pairs(coinContainer:GetChildren()) do
+        if coin:IsA("BasePart") and coin:IsDescendantOf(workspace) then
+            local dist = (coin.Position - hrp.Position).Magnitude
+            if dist < nearestDistance then
+                nearestCoin = coin
+                nearestDistance = dist
+            end
+        end
+    end
+    return nearestCoin, nearestDistance
+end
+
+-- Hàm teleport đến coin (Cập nhật để gọi collectCoin)
+local function teleportToCoin(coin)
+    if not coin then return end
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    hrp.CFrame = (farmMode == "Safe Farm (Beta)") 
+        and CFrame.new(coin.Position.X, coin.Position.Y - 5, coin.Position.Z)
+        or coin.CFrame + Vector3.new(0, 2.9, 0)
+
+    collectCoin(coin)  -- Gọi hàm cập nhật số coin
+end
+
+-- Hàm move bằng Tween đến coin (Cập nhật để gọi collectCoin)
+local function moveToCoin(coin)
+    if not coin then return end
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local targetPosition = (farmMode == "Safe Farm (Beta)") 
+        and Vector3.new(coin.Position.X, coin.Position.Y - 5, coin.Position.Z)
+        or coin.Position + Vector3.new(0, 2.9, 0)
+
+    local distance = (targetPosition - hrp.Position).Magnitude
+    local duration = distance / tweenSpeed
+
+    local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetPosition)})
+    tween:Play()
+    tween.Completed:Wait()
+    
+    collectCoin(coin)  -- Gọi hàm cập nhật số coin
+end
+
+-- Vòng lặp farm liên tục
+local function farmCycle()
+    if not teleportEnabled then return end
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    -- Tìm coin gần nhất
+    local coin, distance = findNearestCoin(1e6)
+    if not coin then return end
+
+    -- Nếu quá xa, dùng teleport, nếu không thì move
+    if distance > teleportDistanceThreshold then
+        teleportToCoin(coin)
+    else
+        moveToCoin(coin)
+    end
+end
+
+-- Xử lý khi nhân vật respawn
+player.CharacterAdded:Connect(function(newCharacter)
+    character = newCharacter
+    humanoid = character:FindFirstChild("Humanoid") or character:WaitForChild("Humanoid")
+    wait(1)
+end)
+
+-- Khi nhân vật chết, reset trạng thái
+if humanoid then
+    humanoid.Died:Connect(function()
+        wait(1)
+    end)
+end
+
+-- Anti-AFK
+MainSection:CreateToggle("Anti-AFK", function(value)
+    if value then
+        local vu = game:GetService("VirtualUser")
+        player.Idled:Connect(function()
+            vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+            wait(1)
+            vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+        end)
+    end
+    local status = value and "Enabled!" or "Disabled!"
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "AntiAFK",
+        Text = status,
+        Icon ="rbxassetid://79958200710618",
+        Duration = 3
+    })
+end)
+
+-- Toggle để bật/tắt auto farm
+MainSection:CreateToggle("Coin Farm", function(value)
+    teleportEnabled = value
+    local status = value and "Enabled!" or "Disabled!"
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Auto Farm Coins",
+        Text = status,
+        Icon ="rbxassetid://79958200710618",
+        Duration = 3
+    })
+end)
+
+-- Thêm Button kiểm tra số coins đã thu thập
+MainSection:CreateButton("Check Coins Collect [Beta]", function()
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Coin Tracker",
+        Text = "Coins Collected: " .. collectedCoins,
+        Icon = "rbxassetid://79958200710618",
+        Duration = 3
+    })
+end)
+
+DiscordSection:CreateButton("Join Discord", function()
+    local discordLink = "https://discord.gg/y8ZDZuFm5F" -- Thay thế bằng link Discord của bạn
+    setclipboard(discordLink)
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Discord Link Copied",
+        Text = "Link Discord was copy!",
+        Icon ="rbxassetid://79958200710618",
+        Duration = 3
+    })
+end)
+
+-- Vòng lặp chính để kiểm tra và farm liên tục
+spawn(function()
+    while wait(0.1) do
+        if teleportEnabled then
+            pcall(function()
+                farmCycle()
+            end)
+        end
+    end
+end)
