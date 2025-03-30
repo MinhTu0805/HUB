@@ -17,6 +17,15 @@ local tweenSpeed = 16
 local teleportDistanceThreshold = 50
 local farmMode = "Default Farm"
 local collectedCoins = 0
+local originalWalkSpeed = 16 -- Lưu tốc độ gốc
+
+-- Hàm đếm coin (thêm vào để theo dõi chính xác hơn)
+local function collectCoin(coin)
+    if coin and coin.Parent then
+        collectedCoins = collectedCoins + 1
+        coin:Destroy() -- Xóa coin sau khi thu thập
+    end
+end
 
 -- Tạo textbox chỉnh tốc độ farm
 MainSection:CreateTextbox("Farm Speed", function(value)
@@ -61,7 +70,7 @@ local function findNearestCoin(maxRadius)
     return nearestCoin, nearestDistance
 end
 
--- Hàm teleport đến coin (Cập nhật để gọi collectCoin)
+-- Hàm teleport đến coin
 local function teleportToCoin(coin)
     if not coin then return end
     local hrp = character:FindFirstChild("HumanoidRootPart")
@@ -71,10 +80,10 @@ local function teleportToCoin(coin)
         and CFrame.new(coin.Position.X, coin.Position.Y - 5, coin.Position.Z)
         or coin.CFrame + Vector3.new(0, 2.9, 0)
 
-    collectCoin(coin)  -- Gọi hàm cập nhật số coin
+    collectCoin(coin)
 end
 
--- Hàm move bằng Tween đến coin (Cập nhật để gọi collectCoin)
+-- Hàm move bằng Tween đến coin
 local function moveToCoin(coin)
     if not coin then return end
     local hrp = character:FindFirstChild("HumanoidRootPart")
@@ -85,14 +94,14 @@ local function moveToCoin(coin)
         or coin.Position + Vector3.new(0, 2.9, 0)
 
     local distance = (targetPosition - hrp.Position).Magnitude
-    local duration = distance / tweenSpeed
+    local duration = distance / (godModeEnabled and tweenSpeed * 2 or tweenSpeed) -- Tăng tốc khi God Mode
 
     local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
     local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetPosition)})
     tween:Play()
     tween.Completed:Wait()
     
-    collectCoin(coin)  -- Gọi hàm cập nhật số coin
+    collectCoin(coin)
 end
 
 -- Vòng lặp farm liên tục
@@ -105,8 +114,10 @@ local function farmCycle()
     local coin, distance = findNearestCoin(1e6)
     if not coin then return end
 
-    -- Nếu quá xa, dùng teleport, nếu không thì move
-    if distance > teleportDistanceThreshold then
+    -- Nếu God Mode bật, tăng ngưỡng teleport
+    local currentThreshold = godModeEnabled and teleportDistanceThreshold * 2 or teleportDistanceThreshold
+    
+    if distance > currentThreshold then
         teleportToCoin(coin)
     else
         moveToCoin(coin)
@@ -117,6 +128,12 @@ end
 player.CharacterAdded:Connect(function(newCharacter)
     character = newCharacter
     humanoid = character:FindFirstChild("Humanoid") or character:WaitForChild("Humanoid")
+    if godModeEnabled then
+        humanoid.WalkSpeed = 32
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+        humanoid.MaxHealth = math.huge
+        humanoid.Health = math.huge
+    end
     wait(1)
 end)
 
@@ -141,7 +158,7 @@ MainSection:CreateToggle("Anti-AFK", function(value)
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "AntiAFK",
         Text = status,
-        Icon ="rbxassetid://79958200710618",
+        Icon = "rbxassetid://79958200710618",
         Duration = 3
     })
 end)
@@ -153,12 +170,12 @@ MainSection:CreateToggle("Coin Farm", function(value)
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Auto Farm Coins",
         Text = status,
-        Icon ="rbxassetid://79958200710618",
+        Icon = "rbxassetid://79958200710618",
         Duration = 3
     })
 end)
 
--- Thêm Button kiểm tra số coins đã thu thập
+-- Button kiểm tra số coins đã thu thập
 MainSection:CreateButton("Check Coins Collect [Beta]", function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Coin Tracker",
@@ -169,17 +186,17 @@ MainSection:CreateButton("Check Coins Collect [Beta]", function()
 end)
 
 DiscordSection:CreateButton("Join Discord", function()
-    local discordLink = "https://discord.gg/y8ZDZuFm5F" -- Thay thế bằng link Discord của bạn
+    local discordLink = "https://discord.gg/y8ZDZuFm5F"
     setclipboard(discordLink)
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Discord Link Copied",
         Text = "Link Discord was copy!",
-        Icon ="rbxassetid://79958200710618",
+        Icon = "rbxassetid://79958200710618",
         Duration = 3
     })
 end)
 
--- Vòng lặp chính để kiểm tra và farm liên tục
+-- Vòng lặp chính
 spawn(function()
     while wait(0.1) do
         if teleportEnabled then
