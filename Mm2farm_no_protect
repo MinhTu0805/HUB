@@ -28,10 +28,10 @@ local function collectCoin(coin)
 end
 
 -- Tạo textbox chỉnh tốc độ farm
-MainSection:CreateTextbox("Farm Speed", function(value)
+MainSection:CreateTextbox("Speed 1 - 20", function(value)
     local num = tonumber(value)
     if num then
-        tweenSpeed = math.clamp(num, 1, 30)
+        tweenSpeed = math.clamp(num, 1, 20)
     end
 end)
 
@@ -94,7 +94,6 @@ local function moveToCoin(coin)
         or coin.Position + Vector3.new(0, 2.9, 0)
 
     local distance = (targetPosition - hrp.Position).Magnitude
-    local duration = distance / (godModeEnabled and tweenSpeed * 2 or tweenSpeed) -- Tăng tốc khi God Mode
 
     local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
     local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetPosition)})
@@ -113,9 +112,6 @@ local function farmCycle()
     -- Tìm coin gần nhất
     local coin, distance = findNearestCoin(1e6)
     if not coin then return end
-
-    -- Nếu God Mode bật, tăng ngưỡng teleport
-    local currentThreshold = godModeEnabled and teleportDistanceThreshold * 2 or teleportDistanceThreshold
     
     if distance > currentThreshold then
         teleportToCoin(coin)
@@ -128,8 +124,6 @@ end
 player.CharacterAdded:Connect(function(newCharacter)
     character = newCharacter
     humanoid = character:FindFirstChild("Humanoid") or character:WaitForChild("Humanoid")
-    if godModeEnabled then
-        humanoid.WalkSpeed = 32
         humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
         humanoid.MaxHealth = math.huge
         humanoid.Health = math.huge
