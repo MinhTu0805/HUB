@@ -9,7 +9,7 @@
 --   2) Local files           : leave BASE_URL = "" and copy the folder "BlockermanSolver"
 --        (with its "modules" folder) into your executor's workspace folder.
 
-local BASE_URL  = ""                    -- "" = use local files
+local BASE_URL  = "https://raw.githubusercontent.com/MinhTu0805/HUB/refs/heads/main"                    -- "" = use local files
 local LOCAL_DIR = "BlockermanSolver"    -- workspace folder used when BASE_URL is ""
 
 -- Load order matters: each module may only use modules that come before it.
