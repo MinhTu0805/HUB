@@ -6,6 +6,8 @@ local FONT, GameRunning, Gui, IconAsset, New, QueueSolve = SV.FONT, SV.GameRunni
 local RISK_HIGH, RISK_LOW, RISK_MID, Refresh, S, SaveSettings = SV.RISK_HIGH, SV.RISK_LOW, SV.RISK_MID, SV.Refresh, SV.S, SV.SaveSettings
 local Stats, StopWalking, TH, Toast, Tr, Tw = SV.Stats, SV.StopWalking, SV.TH, SV.Toast, SV.Tr, SV.Tw
 local UserInputService, VERSION, VI, VIU = SV.UserInputService, SV.VERSION, SV.VI, SV.VIU
+local Round, Stroke, Grad, AccentGrad, Press = SV.Round, SV.Stroke, SV.Grad, SV.AccentGrad, SV.Press
+local WHITE = Color3.fromRGB(255, 255, 255)
 
 -- ─── SETTINGS WINDOW ─────────────────────────────────────
 -- Layout: title bar · live readout strip · side rail (tabs) · content · footer.
@@ -13,10 +15,10 @@ local UserInputService, VERSION, VI, VIU = SV.UserInputService, SV.VERSION, SV.V
 local function BuildWindow()
     local cam       = workspace.CurrentCamera
     -- Landscape window (wider than tall). Scale so BOTH sides fit on small phone screens.
-    local W, H      = 660, 330
+    local W, H      = 660, 340
     local autoScale = cam and math.clamp(math.min(cam.ViewportSize.Y / (H + 24), cam.ViewportSize.X / (W + 24)), 0.5, 1) or 1
     local RAIL      = 112
-    local TOP       = 82          -- title (36) + readout (44) + 2 hairlines
+    local TOP       = 92          -- title (36) + readout cards (46) + gaps
     local FOOT      = 22
     local Ord       = 0
     local Repaints  = {}
@@ -24,6 +26,7 @@ local function BuildWindow()
     local function Corner(o, r) return New("UICorner", { CornerRadius = UDim.new(0, r) }, o) end
     local function Hair(parent, props)
         props.BackgroundColor3 = TH.Line; props.BorderSizePixel = 0
+        if props.BackgroundTransparency == nil then props.BackgroundTransparency = 0.35 end
         return New("Frame", props, parent)
     end
 
@@ -32,61 +35,82 @@ local function BuildWindow()
         Size = UDim2.fromOffset(W, H), BackgroundColor3 = TH.Bg, BorderSizePixel = 0,
         GroupTransparency = 1, Visible = false,
     }, Gui)
-    Corner(win, 8)
-    New("UIStroke", { Color = TH.Line, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, win)
+    Corner(win, 16)
+    local winStroke = Stroke(win, WHITE, 0.15)
+    New("UIGradient", { Color = ColorSequence.new(TH.Accent, TH.Line), Rotation = 70 }, winStroke)
     local uiScale = New("UIScale", { Scale = autoScale * S.UIScale }, win)
+    -- glass face: top-lit gradient (a child frame, because a UIGradient on the CanvasGroup would tint everything)
+    local face = New("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = WHITE, BorderSizePixel = 0 }, win)
+    Grad(face, TH.Bg2, TH.Bg, 90)
+    -- thin lit edge across the top
+    local topEdge = New("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 0),
+        Size = UDim2.new(1, -90, 0, 1), BackgroundColor3 = WHITE, BorderSizePixel = 0 }, win)
+    New("UIGradient", { Color = ColorSequence.new(TH.Accent, TH.Accent2), Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.5, 0.2), NumberSequenceKeypoint.new(1, 1),
+    }) }, topEdge)
 
     -- ── Title bar ──
-    local bar = New("Frame", { Size = UDim2.new(1, 0, 0, 36), BackgroundColor3 = TH.Panel, BorderSizePixel = 0 }, win)
-    local led = New("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 14, 0.5, 0),
+    local bar = New("Frame", { Size = UDim2.new(1, 0, 0, 38), BackgroundTransparency = 1, BorderSizePixel = 0 }, win)
+    local led = New("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 16, 0.5, 0),
         Size = UDim2.fromOffset(8, 8), BackgroundColor3 = TH.Dim, BorderSizePixel = 0 }, bar)
-    Corner(led, 2)
-    local ttl = New("Frame", { Position = UDim2.fromOffset(32, 0), Size = UDim2.new(1, -80, 1, 0), BackgroundTransparency = 1 }, bar)
-    New("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8),
+    Round(led)
+    local ttl = New("Frame", { Position = UDim2.fromOffset(34, 0), Size = UDim2.new(1, -90, 1, 0), BackgroundTransparency = 1 }, bar)
+    New("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 9),
         VerticalAlignment = Enum.VerticalAlignment.Center }, ttl)
-    New("TextLabel", { BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.fromOffset(0, 36),
-        Text = "BLOCKERMAN", Font = FONT.Bold, TextSize = 14, TextColor3 = TH.Text }, ttl)
-    New("TextLabel", { BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.fromOffset(0, 36),
-        Text = "v" .. VERSION, Font = FONT.Mono, TextSize = 11, TextColor3 = TH.Dim }, ttl)
-    local dragHandle = New("Frame", { Size = UDim2.new(1, -44, 1, 0), BackgroundTransparency = 1 }, bar)
-    local closeBtn = New("TextButton", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0),
-        Size = UDim2.fromOffset(42, 36), BackgroundTransparency = 1, Text = "×", Font = FONT.Text,
-        TextSize = 22, TextColor3 = TH.Sub, AutoButtonColor = false }, bar)
-    closeBtn.MouseEnter:Connect(function() Tw(closeBtn, 0.12, { TextColor3 = TH.Bad }) end)
-    closeBtn.MouseLeave:Connect(function() Tw(closeBtn, 0.18, { TextColor3 = TH.Sub }) end)
-    Hair(win, { Position = UDim2.fromOffset(0, 36), Size = UDim2.new(1, 0, 0, 1) })
+    New("TextLabel", { BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.fromOffset(0, 38),
+        Text = "BLOCKERMAN", Font = FONT.Bold, TextSize = 15, TextColor3 = TH.Text }, ttl)
+    local verChip = New("Frame", { AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.fromOffset(0, 18),
+        BackgroundColor3 = TH.Panel2, BorderSizePixel = 0 }, ttl)
+    Round(verChip)
+    Stroke(verChip, TH.Accent, 0.65)
+    New("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8) }, verChip)
+    New("TextLabel", { BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.fromOffset(0, 18),
+        Text = "v" .. VERSION, Font = FONT.Mono, TextSize = 11, TextColor3 = TH.Sub }, verChip)
+    local dragHandle = New("Frame", { Size = UDim2.new(1, -50, 1, 0), BackgroundTransparency = 1 }, bar)
+    local closeBtn = New("TextButton", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0),
+        Size = UDim2.fromOffset(26, 26), BackgroundColor3 = TH.Panel2, BackgroundTransparency = 1, Text = "×",
+        Font = FONT.Text, TextSize = 20, TextColor3 = TH.Sub, AutoButtonColor = false, BorderSizePixel = 0 }, bar)
+    Round(closeBtn)
+    Press(closeBtn, 0.9)
+    closeBtn.MouseEnter:Connect(function() Tw(closeBtn, 0.12, { TextColor3 = TH.Bad, BackgroundTransparency = 0.3 }) end)
+    closeBtn.MouseLeave:Connect(function() Tw(closeBtn, 0.18, { TextColor3 = TH.Sub, BackgroundTransparency = 1 }) end)
 
-    -- ── Live readout strip ──
-    local strip = New("Frame", { Position = UDim2.fromOffset(0, 37), Size = UDim2.new(1, 0, 0, 44),
+    -- ── Live readout cards ──
+    local strip = New("Frame", { Position = UDim2.fromOffset(0, 38), Size = UDim2.new(1, 0, 0, 46),
         BackgroundTransparency = 1 }, win)
     local function Readout(idx, label, col)
-        local c = New("Frame", { Position = UDim2.new((idx - 1) / 4, 0, 0, 0), Size = UDim2.new(0.25, 0, 1, 0),
-            BackgroundTransparency = 1 }, strip)
-        if idx < 4 then Hair(c, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 8), Size = UDim2.new(0, 1, 1, -16) }) end
-        New("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(14, 5), Size = UDim2.new(1, -14, 0, 12),
+        local c = New("Frame", { Position = UDim2.new((idx - 1) / 4, 12 - 4 * (idx - 1), 0, 0),
+            Size = UDim2.new(0.25, -12, 1, 0), BackgroundColor3 = TH.Panel, BackgroundTransparency = 0.15,
+            BorderSizePixel = 0 }, strip)
+        Corner(c, 11)
+        Stroke(c, TH.Line, 0.35)
+        -- tiny coloured tick: the card's meaning at a glance
+        local tick = New("Frame", { Position = UDim2.fromOffset(12, 11), Size = UDim2.fromOffset(3, 10),
+            BackgroundColor3 = col, BorderSizePixel = 0 }, c)
+        Round(tick)
+        New("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(21, 6), Size = UDim2.new(1, -21, 0, 14),
             Text = label, Font = FONT.Text, TextSize = 10, TextColor3 = TH.Dim, TextXAlignment = Enum.TextXAlignment.Left }, c)
-        local v = New("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(14, 17), Size = UDim2.new(1, -14, 0, 22),
+        local v = New("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 20), Size = UDim2.new(1, -12, 0, 22),
             Text = "—", Font = FONT.Mono, TextSize = 18, TextColor3 = col, TextXAlignment = Enum.TextXAlignment.Left }, c)
         local cur = "—"
         return function(text)
             if text == cur then return end
             cur = text
             v.Text = text
-            v.TextColor3 = TH.Accent
-            v.Position = UDim2.fromOffset(14, 21)
-            Tw(v, 0.4, { TextColor3 = col, Position = UDim2.fromOffset(14, 17) })
+            v.TextColor3 = TH.Text
+            v.Position = UDim2.fromOffset(12, 25)
+            Tw(v, 0.45, { TextColor3 = col, Position = UDim2.fromOffset(12, 20) }, Enum.EasingStyle.Back)
         end
     end
     local rSafe = Readout(1, "SAFE", TH.Good)
     local rMine = Readout(2, "MINES", TH.Bad)
     local rBest = Readout(3, "BEST RISK", TH.Info)
     local rMs   = Readout(4, "SOLVE", TH.Sub)
-    Hair(win, { Position = UDim2.fromOffset(0, 81), Size = UDim2.new(1, 0, 0, 1) })
 
     -- ── Rail + content ──
     local rail = New("Frame", { Position = UDim2.fromOffset(0, TOP), Size = UDim2.new(0, RAIL, 1, -TOP - FOOT),
         BackgroundTransparency = 1 }, win)
-    Hair(win, { Position = UDim2.fromOffset(RAIL, TOP), Size = UDim2.new(0, 1, 1, -TOP - FOOT) })
+    Hair(win, { Position = UDim2.fromOffset(RAIL, TOP + 6), Size = UDim2.new(0, 1, 1, -TOP - FOOT - 12), BackgroundTransparency = 0.6 })
     local area = New("Frame", { Position = UDim2.fromOffset(RAIL + 1, TOP), Size = UDim2.new(1, -RAIL - 1, 1, -TOP - FOOT),
         BackgroundTransparency = 1, ClipsDescendants = true }, win)
 
@@ -98,8 +122,15 @@ local function BuildWindow()
         Size = UDim2.new(0.35, 0, 0, FOOT), BackgroundTransparency = 1, Text = "IDLE", Font = FONT.Mono, TextSize = 11,
         TextColor3 = TH.Dim, TextXAlignment = Enum.TextXAlignment.Right }, win)
 
-    local indicator = New("Frame", { Position = UDim2.fromOffset(0, 15), Size = UDim2.fromOffset(2, 16),
-        BackgroundColor3 = TH.Accent, BorderSizePixel = 0 }, rail)
+    -- selection pill that slides between tabs
+    local indicator = New("Frame", { Position = UDim2.fromOffset(8, 6), Size = UDim2.fromOffset(RAIL - 16, 32),
+        BackgroundColor3 = TH.Panel2, BorderSizePixel = 0 }, rail)
+    Corner(indicator, 9)
+    Stroke(indicator, TH.Accent, 0.7)
+    local indBar = New("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 5, 0.5, 0),
+        Size = UDim2.fromOffset(3, 14), BackgroundColor3 = WHITE, BorderSizePixel = 0 }, indicator)
+    Round(indBar)
+    AccentGrad(indBar, 90)
 
     local SelectTab, ApplyLang
     local holders, tabBtns, tabY, current = {}, {}, {}, nil
@@ -112,16 +143,16 @@ local function BuildWindow()
     end
     local function MakePage(name, label, iconNames)
         tabCount += 1
-        local y = 6 + (tabCount - 1) * 34
-        tabY[name] = y + 9
+        local y = 6 + (tabCount - 1) * 36
+        tabY[name] = y
 
-        local b = New("TextButton", { Position = UDim2.fromOffset(0, y), Size = UDim2.new(1, 0, 0, 34),
+        local b = New("TextButton", { Position = UDim2.fromOffset(8, y), Size = UDim2.new(1, -16, 0, 32),
             BackgroundTransparency = 1, Text = label, Font = FONT.Text, TextSize = 13, TextColor3 = TH.Sub,
             TextXAlignment = Enum.TextXAlignment.Left, AutoButtonColor = false }, rail)
         local asset = iconNames and IconAsset(iconNames)
-        New("UIPadding", { PaddingLeft = UDim.new(0, asset and 40 or 16) }, b)
+        New("UIPadding", { PaddingLeft = UDim.new(0, asset and 36 or 16) }, b)
         if asset then
-            -- the button has 40px left padding, so x = -24 puts the icon at 16px from the rail edge
+            -- the button has 36px left padding, so x = -24 puts the icon 12px from the pill edge
             tabIcons[name] = New("ImageLabel", {
                 AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, -24, 0.5, 0),
                 Size = UDim2.fromOffset(16, 16), BackgroundTransparency = 1,
@@ -160,11 +191,11 @@ local function BuildWindow()
         TabTint(name, TH.Text, 0.15)
         if instant then
             h.GroupTransparency, h.Position = 0, UDim2.fromOffset(0, 0)
-            indicator.Position = UDim2.fromOffset(0, tabY[name])
+            indicator.Position = UDim2.fromOffset(8, tabY[name])
         else
             h.GroupTransparency, h.Position = 1, UDim2.fromOffset(12, 0)
             Tw(h, 0.28, { GroupTransparency = 0, Position = UDim2.fromOffset(0, 0) })
-            Tw(indicator, 0.3, { Position = UDim2.fromOffset(0, tabY[name]) })
+            Tw(indicator, 0.38, { Position = UDim2.fromOffset(8, tabY[name]) }, Enum.EasingStyle.Back)
         end
     end
 
@@ -172,19 +203,27 @@ local function BuildWindow()
     local function Row(page, h)
         local r = New("Frame", { Size = UDim2.new(1, 0, 0, h), BackgroundColor3 = TH.Panel, BackgroundTransparency = 1,
             BorderSizePixel = 0, LayoutOrder = nextOrder() }, page)
-        Hair(r, { AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 0, 1, 0), Size = UDim2.new(1, 0, 0, 1),
-            BackgroundTransparency = 0.45 })
+        Corner(r, 9)
+        Hair(r, { AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 10, 1, 0), Size = UDim2.new(1, -20, 0, 1),
+            BackgroundTransparency = 0.75 })
         r.MouseEnter:Connect(function() Tw(r, 0.12, { BackgroundTransparency = 0.35 }) end)
         r.MouseLeave:Connect(function() Tw(r, 0.2, { BackgroundTransparency = 1 }) end)
         return r
     end
     local function Section(page, text)
-        local f = New("Frame", { Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 1, LayoutOrder = nextOrder() }, page)
-        Hair(f, { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 0, 0.5, 5), Size = UDim2.new(1, 0, 0, 1), ZIndex = 1 })
-        local l = New("TextLabel", { Position = UDim2.fromOffset(0, 9), AutomaticSize = Enum.AutomaticSize.X,
-            Size = UDim2.fromOffset(0, 14), BackgroundColor3 = TH.Bg, BorderSizePixel = 0, Text = string.upper(text),
-            Font = FONT.Mono, TextSize = 10, TextColor3 = TH.Dim, ZIndex = 2 }, f)
-        New("UIPadding", { PaddingRight = UDim.new(0, 8) }, l)
+        local f = New("Frame", { Size = UDim2.new(1, 0, 0, 32), BackgroundTransparency = 1, LayoutOrder = nextOrder(),
+            ClipsDescendants = true }, page)
+        New("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 10),
+            VerticalAlignment = Enum.VerticalAlignment.Bottom, SortOrder = Enum.SortOrder.LayoutOrder }, f)
+        New("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingBottom = UDim.new(0, 5) }, f)
+        New("TextLabel", { LayoutOrder = 1, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.fromOffset(0, 14),
+            BackgroundTransparency = 1, Text = string.upper(text), Font = FONT.Mono, TextSize = 10, TextColor3 = TH.Sub }, f)
+        -- fading rule that runs off to the right (the section frame clips it)
+        local line = New("Frame", { LayoutOrder = 2, Size = UDim2.fromOffset(700, 1), BackgroundColor3 = WHITE,
+            BorderSizePixel = 0 }, f)
+        New("UIGradient", { Color = ColorSequence.new(TH.Line, TH.Line), Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(0.45, 0.8), NumberSequenceKeypoint.new(1, 1),
+        }) }, line)
     end
     local function RowLabel(row, text, sub)
         New("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(8, sub and 7 or 0),
@@ -200,27 +239,32 @@ local function BuildWindow()
     local function Toggle(page, label, key, cb, sub)
         local row = Row(page, sub and 50 or 38)
         RowLabel(row, label, sub)
-        local track = New("Frame", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0),
-            Size = UDim2.fromOffset(34, 18), BackgroundColor3 = TH.Panel2, BorderSizePixel = 0 }, row)
-        Corner(track, 4)
-        local ts = New("UIStroke", { Color = TH.Line, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, track)
+        -- pill switch: dark base, accent-gradient layer that fades in, round knob that stretches then springs
+        local track = New("Frame", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0),
+            Size = UDim2.fromOffset(40, 22), BackgroundColor3 = TH.Panel2, BorderSizePixel = 0 }, row)
+        Round(track)
+        local ts = Stroke(track, TH.Line, 0)
+        local onFill = New("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+            BorderSizePixel = 0 }, track)
+        Round(onFill)
+        AccentGrad(onFill, 0)
         local knob = New("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 3, 0.5, 0),
-            Size = UDim2.fromOffset(12, 12), BackgroundColor3 = TH.Sub, BorderSizePixel = 0 }, track)
-        Corner(knob, 2)
+            Size = UDim2.fromOffset(16, 16), BackgroundColor3 = TH.Sub, BorderSizePixel = 0 }, track)
+        Round(knob)
         local function paint(anim)
             local on = S[key]
-            local props = on and { BackgroundColor3 = TH.Accent } or { BackgroundColor3 = TH.Panel2 }
-            local pos   = on and UDim2.new(1, -15, 0.5, 0) or UDim2.new(0, 3, 0.5, 0)
-            local kc    = on and TH.Bg or TH.Sub
-            local sc    = on and TH.Accent or TH.Line
+            local pos = on and UDim2.new(1, -19, 0.5, 0) or UDim2.new(0, 3, 0.5, 0)
+            local kc  = on and WHITE or TH.Sub
+            local fa  = on and 0 or 1
+            local sa  = on and 1 or 0
             if anim then
-                Tw(track, 0.2, props); Tw(ts, 0.2, { Color = sc })
-                Tw(knob, 0.08, { Size = UDim2.fromOffset(17, 12) })
+                Tw(onFill, 0.22, { BackgroundTransparency = fa }); Tw(ts, 0.22, { Transparency = sa })
+                Tw(knob, 0.08, { Size = UDim2.fromOffset(22, 16) })
                 task.delay(0.08, function()
-                    Tw(knob, 0.28, { Position = pos, Size = UDim2.fromOffset(12, 12), BackgroundColor3 = kc }, Enum.EasingStyle.Back)
+                    Tw(knob, 0.32, { Position = pos, Size = UDim2.fromOffset(16, 16), BackgroundColor3 = kc }, Enum.EasingStyle.Back)
                 end)
             else
-                track.BackgroundColor3 = props.BackgroundColor3; ts.Color = sc
+                onFill.BackgroundTransparency = fa; ts.Transparency = sa
                 knob.Position = pos; knob.BackgroundColor3 = kc
             end
         end
@@ -242,12 +286,16 @@ local function BuildWindow()
         local val = New("TextLabel", { BackgroundTransparency = 1, AnchorPoint = Vector2.new(1, 0),
             Position = UDim2.new(1, -8, 0, 8), Size = UDim2.new(0.4, 0, 0, 16), Text = "", Font = FONT.Mono,
             TextSize = 12, TextColor3 = TH.Sub, TextXAlignment = Enum.TextXAlignment.Right }, row)
-        local track = New("Frame", { Position = UDim2.fromOffset(8, 40), Size = UDim2.new(1, -16, 0, 2),
-            BackgroundColor3 = TH.Line, BorderSizePixel = 0 }, row)
-        local fill = New("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = TH.Accent, BorderSizePixel = 0 }, track)
-        local knob = New("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(8, 16),
-            BackgroundColor3 = TH.Accent, BorderSizePixel = 0 }, track)
-        Corner(knob, 2)
+        local track = New("Frame", { Position = UDim2.fromOffset(10, 39), Size = UDim2.new(1, -20, 0, 4),
+            BackgroundColor3 = TH.Panel2, BorderSizePixel = 0 }, row)
+        Round(track)
+        local fill = New("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = WHITE, BorderSizePixel = 0 }, track)
+        Round(fill)
+        AccentGrad(fill, 0)
+        local knob = New("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(14, 14),
+            BackgroundColor3 = WHITE, BorderSizePixel = 0 }, track)
+        Round(knob)
+        Stroke(knob, TH.Accent, 0.35, 2)
         local hit = New("TextButton", { Position = UDim2.fromOffset(0, 26), Size = UDim2.new(1, 0, 0, 30),
             BackgroundTransparency = 1, Text = "", ZIndex = 5 }, row)
 
@@ -272,7 +320,7 @@ local function BuildWindow()
                 dragging = true
                 local sf = hit:FindFirstAncestorOfClass("ScrollingFrame")
                 if sf then sf.ScrollingEnabled = false end
-                Tw(knob, 0.15, { Size = UDim2.fromOffset(10, 22) }, Enum.EasingStyle.Back)
+                Tw(knob, 0.18, { Size = UDim2.fromOffset(19, 19) }, Enum.EasingStyle.Back)
                 Tw(val, 0.15, { TextColor3 = TH.Text })
                 setX(i.Position.X)
             end
@@ -287,7 +335,7 @@ local function BuildWindow()
                 dragging = false
                 local sf = hit:FindFirstAncestorOfClass("ScrollingFrame")
                 if sf then sf.ScrollingEnabled = true end
-                Tw(knob, 0.2, { Size = UDim2.fromOffset(8, 16) })
+                Tw(knob, 0.28, { Size = UDim2.fromOffset(14, 14) }, Enum.EasingStyle.Back)
                 Tw(val, 0.25, { TextColor3 = TH.Sub })
                 if cb then cb(S[key]) end
             end
@@ -300,19 +348,20 @@ local function BuildWindow()
         local row = Row(page, 62)
         New("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(8, 6), Size = UDim2.new(1, -16, 0, 18),
             Text = label, Font = FONT.Text, TextSize = 14, TextColor3 = TH.Text, TextXAlignment = Enum.TextXAlignment.Left }, row)
-        local strip = New("Frame", { Position = UDim2.fromOffset(8, 30), Size = UDim2.new(1, -16, 0, 24),
+        local strip = New("Frame", { Position = UDim2.fromOffset(8, 30), Size = UDim2.new(1, -16, 0, 26),
             BackgroundColor3 = TH.Panel, BorderSizePixel = 0 }, row)
-        Corner(strip, 4)
-        New("UIStroke", { Color = TH.Line, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, strip)
+        Corner(strip, 9)
+        Stroke(strip, TH.Line, 0.2)
         local n = #options
-        local hl = New("Frame", { Size = UDim2.new(1 / n, -4, 1, -4), BackgroundColor3 = TH.Accent, BorderSizePixel = 0 }, strip)
-        Corner(hl, 3)
+        local hl = New("Frame", { Size = UDim2.new(1 / n, -4, 1, -4), BackgroundColor3 = WHITE, BorderSizePixel = 0 }, strip)
+        Corner(hl, 7)
+        AccentGrad(hl, 0)
         local btns = {}
         local function paint(anim)
             local idx = 1
             for i, o in ipairs(options) do if o == S[key] then idx = i end end
             local pos = UDim2.new((idx - 1) / n, 2, 0, 2)
-            if anim then Tw(hl, 0.28, { Position = pos }, Enum.EasingStyle.Quint) else hl.Position = pos end
+            if anim then Tw(hl, 0.34, { Position = pos }, Enum.EasingStyle.Back) else hl.Position = pos end
             for opt, b in next, btns do
                 local c = S[key] == opt and TH.Bg or TH.Sub
                 if anim then Tw(b, 0.18, { TextColor3 = c }) else b.TextColor3 = c end
@@ -336,20 +385,21 @@ local function BuildWindow()
     local function Button(page, text, cb, kind)
         local wrap = New("Frame", { Size = UDim2.new(1, 0, 0, 40), BackgroundTransparency = 1, LayoutOrder = nextOrder() }, page)
         local primary, danger = kind == "primary", kind == "danger"
-        local b = New("TextButton", { Position = UDim2.fromOffset(0, 5), Size = UDim2.new(1, 0, 0, 30),
-            BackgroundColor3 = primary and TH.Accent or TH.Panel, Text = text, Font = FONT.Bold, TextSize = 12,
+        local b = New("TextButton", { Position = UDim2.fromOffset(8, 4), Size = UDim2.new(1, -16, 0, 32),
+            BackgroundColor3 = primary and WHITE or TH.Panel, Text = text, Font = FONT.Bold, TextSize = 12,
             TextColor3 = primary and TH.Bg or (danger and TH.Bad or TH.Text), AutoButtonColor = false,
             BorderSizePixel = 0 }, wrap)
-        Corner(b, 4)
-        local st = New("UIStroke", { Color = danger and TH.Bad or TH.Line, Transparency = danger and 0.55 or 0,
+        Corner(b, 9)
+        if primary then AccentGrad(b, 0) end
+        local st = New("UIStroke", { Color = danger and TH.Bad or TH.Line, Transparency = primary and 1 or (danger and 0.55 or 0),
             ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, b)
         local sc = New("UIScale", { Scale = 1 }, b)
-        local rest = primary and TH.Accent or TH.Panel
-        local hover = primary and TH.Text or TH.Panel2
+        local rest = primary and WHITE or TH.Panel
+        local hover = primary and Color3.fromRGB(224, 228, 255) or TH.Panel2
         b.MouseEnter:Connect(function() Tw(b, 0.12, { BackgroundColor3 = hover }); if not primary then Tw(st, 0.12, { Color = danger and TH.Bad or TH.Dim }) end end)
         b.MouseLeave:Connect(function() Tw(b, 0.2, { BackgroundColor3 = rest }); Tw(sc, 0.2, { Scale = 1 }); if not primary then Tw(st, 0.2, { Color = danger and TH.Bad or TH.Line }) end end)
-        b.MouseButton1Down:Connect(function() Tw(sc, 0.07, { Scale = 0.97 }) end)
-        b.MouseButton1Up:Connect(function() Tw(sc, 0.3, { Scale = 1 }, Enum.EasingStyle.Back) end)
+        b.MouseButton1Down:Connect(function() Tw(sc, 0.08, { Scale = 0.96 }) end)
+        b.MouseButton1Up:Connect(function() Tw(sc, 0.4, { Scale = 1 }, Enum.EasingStyle.Back) end)
         b.Activated:Connect(cb)
     end
 
@@ -359,7 +409,7 @@ local function BuildWindow()
             local x = (i - 1) * 0.25
             local sq = New("Frame", { Position = UDim2.new(x, 8, 0.5, -5), Size = UDim2.fromOffset(10, 10),
                 BackgroundColor3 = col or Color3.new(1, 1, 1), BorderSizePixel = 0 }, row)
-            Corner(sq, 2)
+            Round(sq)
             if grad then
                 New("UIGradient", { Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, RISK_LOW),
                     ColorSequenceKeypoint.new(0.5, RISK_MID), ColorSequenceKeypoint.new(1, RISK_HIGH) }) }, sq)
@@ -566,16 +616,18 @@ local function BuildWindow()
     end
 
     -- ── Floating button: a tiny 3×3 board, the centre tile shows the game state ──
-    local fab = New("TextButton", { Name = "Toggle", Position = UDim2.new(0, 14, 0.5, -18), Size = UDim2.fromOffset(36, 36),
+    local fab = New("TextButton", { Name = "Toggle", Position = UDim2.new(0, 14, 0.5, -20), Size = UDim2.fromOffset(40, 40),
         BackgroundColor3 = TH.Panel, Text = "", AutoButtonColor = false, BorderSizePixel = 0 }, Gui)
-    Corner(fab, 8)
-    local fabStroke = New("UIStroke", { Color = TH.Line, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, fab)
+    Corner(fab, 13)
+    local fabStroke = Stroke(fab, WHITE, 0.35)
+    New("UIGradient", { Color = ColorSequence.new(TH.Accent, TH.Accent2), Rotation = 45 }, fabStroke)
+    Press(fab, 0.92)
     local fabCells = {}
     for r = 0, 2 do
         for c = 0, 2 do
-            local f = New("Frame", { Position = UDim2.fromOffset(7 + c * 8, 7 + r * 8), Size = UDim2.fromOffset(6, 6),
+            local f = New("Frame", { Position = UDim2.fromOffset(8 + c * 9, 8 + r * 9), Size = UDim2.fromOffset(6, 6),
                 BackgroundColor3 = TH.Dim, BorderSizePixel = 0 }, fab)
-            Corner(f, 1)
+            Corner(f, 2)
             fabCells[#fabCells + 1] = { f = f, r = r, c = c }
         end
     end
@@ -590,8 +642,8 @@ local function BuildWindow()
             end)
         end
     end
-    fab.MouseEnter:Connect(function() Tw(fabStroke, 0.12, { Color = TH.Sub }) end)
-    fab.MouseLeave:Connect(function() Tw(fabStroke, 0.2, { Color = TH.Line }) end)
+    fab.MouseEnter:Connect(function() Tw(fabStroke, 0.12, { Transparency = 0 }) end)
+    fab.MouseLeave:Connect(function() Tw(fabStroke, 0.2, { Transparency = 0.35 }) end)
 
     -- ── Open / close ──
     local open = false
