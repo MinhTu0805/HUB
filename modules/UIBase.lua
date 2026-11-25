@@ -49,22 +49,46 @@ local function Tw(o, t, props, style, dir)
     return tw
 end
 
--- Flat ink + paper. Colour is reserved for meaning (safe / mine / best), never decoration.
+-- Dark glass: deep blue-black surfaces, one indigo→sky accent for interaction,
+-- green / red / blue / amber reserved for meaning (safe / mine / best / caution).
 local TH = {
-    Bg      = Color3.fromRGB(13, 14, 16),
-    Panel   = Color3.fromRGB(19, 21, 24),
-    Panel2  = Color3.fromRGB(28, 30, 34),
-    Line    = Color3.fromRGB(42, 45, 51),
-    Text    = Color3.fromRGB(233, 231, 226),
-    Sub     = Color3.fromRGB(143, 146, 153),
-    Dim     = Color3.fromRGB(92, 95, 102),
-    Accent  = Color3.fromRGB(236, 233, 224),
-    Accent2 = Color3.fromRGB(236, 233, 224),
-    Good    = Color3.fromRGB(92, 214, 138),
-    Bad     = Color3.fromRGB(240, 90, 90),
+    Bg      = Color3.fromRGB(11, 12, 17),
+    Bg2     = Color3.fromRGB(21, 23, 33),     -- top of the window gradient
+    Panel   = Color3.fromRGB(21, 23, 31),
+    Panel2  = Color3.fromRGB(33, 36, 48),
+    Line    = Color3.fromRGB(46, 50, 66),
+    Text    = Color3.fromRGB(238, 240, 247),
+    Sub     = Color3.fromRGB(152, 158, 176),
+    Dim     = Color3.fromRGB(98, 104, 122),
+    Accent  = Color3.fromRGB(132, 146, 255),  -- indigo
+    Accent2 = Color3.fromRGB(94, 196, 255),   -- sky (gradient partner)
+    Good    = Color3.fromRGB(86, 222, 142),
+    Bad     = Color3.fromRGB(246, 98, 108),
     Info    = Color3.fromRGB(98, 150, 255),
-    Warn    = Color3.fromRGB(246, 190, 84),
+    Warn    = Color3.fromRGB(250, 192, 92),
 }
+
+-- ─── Look helpers (shared by every UI module) ───────────
+local function Corner(o, r) return New("UICorner", { CornerRadius = UDim.new(0, r) }, o) end
+local function Round(o) return New("UICorner", { CornerRadius = UDim.new(1, 0) }, o) end
+local function Stroke(o, col, transp, thick)
+    return New("UIStroke", { Color = col or TH.Line, Transparency = transp or 0, Thickness = thick or 1,
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, o)
+end
+-- two-colour gradient (rot: 0 = left→right, 90 = top→bottom)
+local function Grad(o, c0, c1, rot)
+    return New("UIGradient", { Color = ColorSequence.new(c0, c1), Rotation = rot or 0 }, o)
+end
+-- accent gradient used by switches, sliders, primary buttons
+local function AccentGrad(o, rot) return Grad(o, TH.Accent, TH.Accent2, rot or 0) end
+-- Press feel: squash on press, springy release (the content stays centred because only UIScale changes)
+local function Press(btn, down)
+    local sc = btn:FindFirstChildOfClass("UIScale") or New("UIScale", { Scale = 1 }, btn)
+    btn.MouseButton1Down:Connect(function() Tw(sc, 0.08, { Scale = down or 0.96 }) end)
+    btn.MouseButton1Up:Connect(function() Tw(sc, 0.38, { Scale = 1 }, Enum.EasingStyle.Back) end)
+    btn.MouseLeave:Connect(function() Tw(sc, 0.2, { Scale = 1 }) end)
+    return sc
+end
 local FONT = {
     Text = Enum.Font.BuilderSansMedium,
     Bold = Enum.Font.BuilderSansBold,
@@ -115,25 +139,34 @@ local function Toast(text, color)
     if #live >= 4 then table.sort(live, function(a, b) return a.LayoutOrder < b.LayoutOrder end); live[1]:Destroy() end
 
     local t = New("CanvasGroup", {
-        Name = "Toast", LayoutOrder = ToastSeq, Size = UDim2.fromOffset(0, 34),
+        Name = "Toast", LayoutOrder = ToastSeq, Size = UDim2.fromOffset(0, 38),
         AutomaticSize = Enum.AutomaticSize.X, BackgroundColor3 = TH.Panel, BorderSizePixel = 0,
         GroupTransparency = 1, ZIndex = 200,
     }, ToastHost)
-    New("UICorner", { CornerRadius = UDim.new(0, 5) }, t)
-    New("UIStroke", { Color = TH.Line, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, t)
-    New("UIPadding", { PaddingLeft = UDim.new(0, 16), PaddingRight = UDim.new(0, 14) }, t)
-    local sc = New("UIScale", { Scale = 0.92 }, t)
-    local stripe = New("Frame", { Position = UDim2.fromOffset(-16, 0), Size = UDim2.new(0, 3, 1, 0),
-        BackgroundColor3 = col, BorderSizePixel = 0 }, t)
+    Round(t)
+    Stroke(t, col, 0.6)
+    New("UIPadding", { PaddingLeft = UDim.new(0, 34), PaddingRight = UDim.new(0, 18) }, t)
+    local sc = New("UIScale", { Scale = 0.9 }, t)
+    -- status dot (pulses once on entry)
+    local dot = New("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, -20, 0.5, 0),
+        Size = UDim2.fromOffset(8, 8), BackgroundColor3 = col, BorderSizePixel = 0 }, t)
+    Round(dot)
+    local ring = New("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 0, 0.5, 0),
+        Size = UDim2.fromOffset(8, 8), BackgroundTransparency = 1 }, dot)
+    Round(ring)
+    local rs = Stroke(ring, col, 0.2, 1.5)
     New("TextLabel", { BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.X,
         Size = UDim2.new(0, 0, 1, 0), Text = Tr(text), Font = FONT.Text, TextSize = 14,
         TextColor3 = TH.Text }, t)
-    local life = New("Frame", { AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, -16, 1, 0),
-        Size = UDim2.new(1, 30, 0, 2), BackgroundColor3 = col, BackgroundTransparency = 0.55,
+    -- life bar: thin rounded line along the bottom that drains
+    local life = New("Frame", { AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, -34, 1, 0),
+        Size = UDim2.new(1, 52, 0, 2), BackgroundColor3 = col, BackgroundTransparency = 0.45,
         BorderSizePixel = 0 }, t)
 
+    Tw(ring, 0.7, { Size = UDim2.fromOffset(22, 22) })
+    Tw(rs, 0.7, { Transparency = 1 })
     Tw(t, 0.28, { GroupTransparency = 0 })
-    Tw(sc, 0.42, { Scale = 1 }, Enum.EasingStyle.Back)
+    Tw(sc, 0.45, { Scale = 1 }, Enum.EasingStyle.Back)
     Tw(life, 2.6, { Size = UDim2.new(0, 0, 0, 2) }, Enum.EasingStyle.Linear)
     task.delay(2.6, function()
         if t.Parent then
@@ -145,12 +178,18 @@ local function Toast(text, color)
 end
 
 -- ─── exports ───
+SV.AccentGrad = AccentGrad
 SV.Bind = Bind
+SV.Corner = Corner
 SV.FONT = FONT
 SV.Gui = Gui
 SV.IconAsset = IconAsset
 SV.LoadLucide = LoadLucide
+SV.Grad = Grad
 SV.New = New
+SV.Press = Press
+SV.Round = Round
+SV.Stroke = Stroke
 SV.TH = TH
 SV.Toast = Toast
 SV.Tw = Tw
