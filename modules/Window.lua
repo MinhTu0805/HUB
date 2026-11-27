@@ -6,7 +6,8 @@ local FONT, GameRunning, Gui, IconAsset, New, QueueSolve = SV.FONT, SV.GameRunni
 local RISK_HIGH, RISK_LOW, RISK_MID, Refresh, S, SaveSettings = SV.RISK_HIGH, SV.RISK_LOW, SV.RISK_MID, SV.Refresh, SV.S, SV.SaveSettings
 local Stats, StopWalking, TH, Toast, Tr, Tw = SV.Stats, SV.StopWalking, SV.TH, SV.Toast, SV.Tr, SV.Tw
 local UserInputService, VERSION, VI, VIU = SV.UserInputService, SV.VERSION, SV.VI, SV.VIU
-local OnLucide = SV.OnLucide
+local OnLucide, Rainbow, RunService = SV.OnLucide, SV.Rainbow, SV.RunService
+local BACK, QUINT = Enum.EasingStyle.Back, Enum.EasingStyle.Quint
 
 -- ─── SETTINGS WINDOW ─────────────────────────────────────
 -- Layout: title bar · stat strip · side rail (tabs) · content as cards of rows.
@@ -45,17 +46,38 @@ local function BuildWindow()
     Stroke(win)
     local uiScale = New("UIScale", { Scale = autoScale * S.UIScale }, win)
 
+    -- Aurora hairline along the top edge (same pastel rainbow as the boot screen); brighter while a round is live
+    local aurora = New("Frame", { Size = UDim2.new(1, 0, 0, 1), BackgroundColor3 = Color3.new(1, 1, 1),
+        BackgroundTransparency = 0.7, BorderSizePixel = 0, ZIndex = 10 }, win)
+    local auroraG = New("UIGradient", { Color = Rainbow(0), Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.18, 0),
+        NumberSequenceKeypoint.new(0.82, 0), NumberSequenceKeypoint.new(1, 1) }) }, aurora)
+
     -- ── Title bar: logo (centre tile = live state) · name · state text · close ──
     local bar = New("Frame", { Size = UDim2.new(1, 0, 0, 36), BackgroundTransparency = 1 }, win)
     local logo = New("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 14, 0.5, 0),
         Size = UDim2.fromOffset(14, 14), BackgroundTransparency = 1 }, bar)
     local led
+    local logoCells = {}
     for r = 0, 2 do
         for c = 0, 2 do
             local t = New("Frame", { Position = UDim2.fromOffset(c * 5, r * 5), Size = UDim2.fromOffset(4, 4),
                 BackgroundColor3 = TH.Dim, BorderSizePixel = 0 }, logo)
             Corner(t, 1)
+            logoCells[#logoCells + 1] = { f = t, r = r, c = c }
             if r == 1 and c == 1 then led = t end
+        end
+    end
+    local function LogoWave()      -- ripples out from the centre tile every time the window opens
+        for _, cell in ipairs(logoCells) do
+            local dist = math.abs(cell.r - 1) + math.abs(cell.c - 1)
+            if dist > 0 then
+                task.delay(dist * 0.07, function()
+                    if not cell.f.Parent then return end
+                    cell.f.BackgroundColor3 = TH.Text
+                    Tw(cell.f, 0.5, { BackgroundColor3 = TH.Dim })
+                end)
+            end
         end
     end
     local ttl = New("Frame", { Position = UDim2.fromOffset(38, 0), Size = UDim2.new(1, -160, 1, 0), BackgroundTransparency = 1 }, bar)
@@ -90,15 +112,25 @@ local function BuildWindow()
         end
         New("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 5), Size = UDim2.new(1, -12, 0, 11),
             Text = label, Font = FONT.Text, TextSize = 10, TextColor3 = TH.Dim, TextXAlignment = Enum.TextXAlignment.Left }, c)
-        local v = New("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 16), Size = UDim2.new(1, -12, 0, 18),
-            Text = "—", Font = FONT.Mono, TextSize = 15, TextColor3 = col, TextXAlignment = Enum.TextXAlignment.Left }, c)
+        local clip = New("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 16),
+            Size = UDim2.new(1, -12, 0, 18), ClipsDescendants = true }, c)
+        local function mk()
+            return New("TextLabel", { BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Text = "—",
+                Font = FONT.Mono, TextSize = 15, TextColor3 = col, TextXAlignment = Enum.TextXAlignment.Left }, clip)
+        end
+        local front, back = mk(), mk()
+        back.Position = UDim2.fromOffset(0, 20); back.TextTransparency = 1
         local cur = "—"
         return function(text)
             if text == cur then return end
             cur = text
-            v.Text = text
-            v.TextColor3 = TH.Text
-            Tw(v, 0.45, { TextColor3 = col })
+            local old = front
+            front, back = back, old
+            front.Text = text
+            front.TextColor3 = TH.Text; front.TextTransparency = 0
+            front.Position = UDim2.fromOffset(0, 20)
+            Tw(front, 0.4, { Position = UDim2.fromOffset(0, 0), TextColor3 = col })
+            Tw(old, 0.3, { Position = UDim2.fromOffset(0, -20), TextTransparency = 1 }, QUINT, Enum.EasingDirection.In)
         end
     end
     local rSafe = Readout(1, "SAFE", TH.Good)
@@ -116,6 +148,10 @@ local function BuildWindow()
     local indicator = New("Frame", { Position = UDim2.fromOffset(8, 0), Size = UDim2.fromOffset(RAIL - 16, 30),
         BackgroundColor3 = TH.Panel2, BorderSizePixel = 0 }, rail)
     Corner(indicator, 7)
+    local indBar = New("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 0, 0.5, 0),
+        Size = UDim2.fromOffset(2, 0), BackgroundColor3 = TH.Text, BorderSizePixel = 0 }, indicator)
+    Corner(indBar, 1)
+    local pages = {}
 
     local SelectTab, ApplyLang
     local holders, tabBtns, tabY, current = {}, {}, {}, nil
@@ -210,8 +246,23 @@ local function BuildWindow()
             PaddingBottom = UDim.new(0, 12) }, p)
         New("UIListLayout", { Padding = UDim.new(0, 0), SortOrder = Enum.SortOrder.LayoutOrder }, p)
         holders[name] = holder
+        pages[name] = p
         b.Activated:Connect(function() if current ~= name then SelectTab(name) end end)
         return p
+    end
+    -- cards / sections / buttons of a page fade in one after another
+    local function Stagger(name)
+        local i = 0
+        for _, ch in ipairs(pages[name]:GetChildren()) do
+            if ch:IsA("CanvasGroup") then
+                ch.GroupTransparency = 1
+                task.delay(i * 0.035, function()
+                    if ch.Parent then Tw(ch, 0.38, { GroupTransparency = 0 }) end
+                end)
+                i += 1
+            end
+        end
+        pages[name].CanvasPosition = Vector2.new(0, 0)
     end
     function SelectTab(name, instant)
         local old = current
@@ -228,10 +279,14 @@ local function BuildWindow()
         if instant then
             h.GroupTransparency, h.Position = 0, UDim2.fromOffset(0, 0)
             indicator.Position = UDim2.fromOffset(8, tabY[name])
+            indBar.Size = UDim2.fromOffset(2, 14)
         else
-            h.GroupTransparency, h.Position = 1, UDim2.fromOffset(0, 8)
-            Tw(h, 0.26, { GroupTransparency = 0, Position = UDim2.fromOffset(0, 0) })
-            Tw(indicator, 0.26, { Position = UDim2.fromOffset(8, tabY[name]) })
+            h.GroupTransparency, h.Position = 1, UDim2.fromOffset(0, 10)
+            Tw(h, 0.3, { GroupTransparency = 0, Position = UDim2.fromOffset(0, 0) })
+            Tw(indicator, 0.34, { Position = UDim2.fromOffset(8, tabY[name]) }, BACK)
+            indBar.Size = UDim2.fromOffset(2, 4)
+            Tw(indBar, 0.4, { Size = UDim2.fromOffset(2, 14) }, BACK)
+            Stagger(name)
         end
     end
 
@@ -242,7 +297,7 @@ local function BuildWindow()
     local function Card(page)
         local card = groups[page]
         if card then return card end
-        card = New("Frame", { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
+        card = New("CanvasGroup", { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
             BackgroundColor3 = TH.Panel, BorderSizePixel = 0, LayoutOrder = nextOrder() }, page)
         Corner(card, 8)
         Stroke(card)
@@ -258,12 +313,13 @@ local function BuildWindow()
         if n > 1 then   -- divider between rows (a sibling, so row padding never shifts it)
             Hair(card, { Size = UDim2.new(1, 0, 0, 1), LayoutOrder = n * 2 - 1 })
         end
-        return New("Frame", { Size = UDim2.new(1, 0, 0, h), BackgroundTransparency = 1, BorderSizePixel = 0,
-            LayoutOrder = n * 2 }, card)
+        return New("Frame", { Size = UDim2.new(1, 0, 0, h), BackgroundColor3 = TH.Panel2, BackgroundTransparency = 1,
+            BorderSizePixel = 0, LayoutOrder = n * 2 }, card)
     end
     local function Section(page, text)
         groups[page] = nil
-        local f = New("Frame", { Size = UDim2.new(1, 0, 0, 28), BackgroundTransparency = 1, LayoutOrder = nextOrder() }, page)
+        local f = New("CanvasGroup", { Size = UDim2.new(1, 0, 0, 28), BackgroundTransparency = 1, BorderSizePixel = 0,
+            LayoutOrder = nextOrder() }, page)
         New("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(4, 10), Size = UDim2.new(1, -4, 0, 14),
             Text = string.upper(text), Font = FONT.Mono, TextSize = 10, TextColor3 = TH.Dim,
             TextXAlignment = Enum.TextXAlignment.Left }, f)
@@ -289,23 +345,30 @@ local function BuildWindow()
         local knob = New("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 3, 0.5, 0),
             Size = UDim2.fromOffset(12, 12), BackgroundColor3 = TH.Sub, BorderSizePixel = 0 }, track)
         Corner(knob, 6)
-        local function paint(anim)
+        -- the knob stretches while pressed and springs into place (Back easing)
+        local function paint(anim, pressed)
             local on  = S[key]
+            local w   = pressed and 17 or 12
             local tc  = on and ON or TH.Panel2
             local sc  = on and ON or TH.Line
-            local pos = on and UDim2.new(1, -15, 0.5, 0) or UDim2.new(0, 3, 0.5, 0)
+            local pos = on and UDim2.new(1, -(3 + w), 0.5, 0) or UDim2.new(0, 3, 0.5, 0)
             local kc  = on and Color3.fromRGB(255, 255, 255) or TH.Sub
             if anim then
-                Tw(track, 0.18, { BackgroundColor3 = tc }); Tw(ts, 0.18, { Color = sc })
-                Tw(knob, 0.2, { Position = pos, BackgroundColor3 = kc })
+                Tw(track, 0.2, { BackgroundColor3 = tc }); Tw(ts, 0.2, { Color = sc })
+                Tw(knob, 0.32, { Position = pos, Size = UDim2.fromOffset(w, 12) }, BACK)
+                Tw(knob, 0.2, { BackgroundColor3 = kc })
             else
                 track.BackgroundColor3 = tc; ts.Color = sc
-                knob.Position = pos; knob.BackgroundColor3 = kc
+                knob.Position = pos; knob.Size = UDim2.fromOffset(w, 12); knob.BackgroundColor3 = kc
             end
         end
         Repaints[#Repaints + 1] = function() paint(true) end
         local hit = New("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "",
             ZIndex = 5 }, row)
+        hit.MouseEnter:Connect(function() Tw(row, 0.15, { BackgroundTransparency = 0.55 }) end)
+        hit.MouseLeave:Connect(function() Tw(row, 0.22, { BackgroundTransparency = 1 }); paint(true) end)
+        hit.MouseButton1Down:Connect(function() paint(true, true) end)
+        hit.MouseButton1Up:Connect(function() paint(true) end)
         hit.Activated:Connect(function()
             S[key] = not S[key]
             paint(true); SaveSettings()
@@ -329,13 +392,20 @@ local function BuildWindow()
         local knob = New("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(12, 12),
             BackgroundColor3 = Color3.fromRGB(255, 255, 255), BorderSizePixel = 0 }, track)
         Corner(knob, 6)
+        local ring = New("UIStroke", { Color = TH.Text, Transparency = 1, Thickness = 0,
+            ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, knob)
         local hit = New("TextButton", { Position = UDim2.fromOffset(0, 24), Size = UDim2.new(1, 0, 0, 28),
             BackgroundTransparency = 1, Text = "", ZIndex = 5 }, row)
 
-        local function paint()
+        local function paint(smooth)
             local a = (S[key] - min) / (max - min)
-            fill.Size = UDim2.fromScale(a, 1)
-            knob.Position = UDim2.fromScale(a, 0.5)
+            if smooth then
+                Tw(fill, 0.09, { Size = UDim2.fromScale(a, 1) }, Enum.EasingStyle.Quad)
+                Tw(knob, 0.09, { Position = UDim2.fromScale(a, 0.5) }, Enum.EasingStyle.Quad)
+            else
+                fill.Size = UDim2.fromScale(a, 1)
+                knob.Position = UDim2.fromScale(a, 0.5)
+            end
             val.Text = fmt(S[key])
         end
         local lastFire, dragging = 0, false
@@ -344,7 +414,7 @@ local function BuildWindow()
             local v = math.clamp(math.floor((min + a * (max - min)) / step + 0.5) * step, min, max)
             v = tonumber(string.format("%.3f", v))
             if v ~= S[key] then
-                S[key] = v; paint(); SaveSettings()
+                S[key] = v; paint(true); SaveSettings()
                 if cb and os.clock() - lastFire > 0.06 then lastFire = os.clock(); cb(v) end
             end
         end
@@ -353,7 +423,8 @@ local function BuildWindow()
                 dragging = true
                 local sf = hit:FindFirstAncestorOfClass("ScrollingFrame")
                 if sf then sf.ScrollingEnabled = false end
-                Tw(knob, 0.14, { Size = UDim2.fromOffset(16, 16) })
+                Tw(knob, 0.2, { Size = UDim2.fromOffset(16, 16) }, BACK)
+                Tw(ring, 0.2, { Transparency = 0.78, Thickness = 6 })
                 Tw(val, 0.15, { TextColor3 = TH.Text })
                 setX(i.Position.X)
             end
@@ -368,7 +439,8 @@ local function BuildWindow()
                 dragging = false
                 local sf = hit:FindFirstAncestorOfClass("ScrollingFrame")
                 if sf then sf.ScrollingEnabled = true end
-                Tw(knob, 0.2, { Size = UDim2.fromOffset(12, 12) })
+                Tw(knob, 0.3, { Size = UDim2.fromOffset(12, 12) }, BACK)
+                Tw(ring, 0.3, { Transparency = 1, Thickness = 0 })
                 Tw(val, 0.25, { TextColor3 = TH.Sub })
                 if cb then cb(S[key]) end
             end
@@ -392,7 +464,7 @@ local function BuildWindow()
             local idx = 1
             for i, o in ipairs(options) do if o == S[key] then idx = i end end
             local pos = UDim2.new((idx - 1) / n, 2, 0, 2)
-            if anim then Tw(hl, 0.22, { Position = pos }) else hl.Position = pos end
+            if anim then Tw(hl, 0.32, { Position = pos }, BACK) else hl.Position = pos end
             for opt, b in next, btns do
                 local c = S[key] == opt and TH.Text or TH.Sub
                 if anim then Tw(b, 0.18, { TextColor3 = c }) else b.TextColor3 = c end
@@ -415,17 +487,29 @@ local function BuildWindow()
     -- kind: nil (outline) | "primary" | "danger"
     local function Button(page, text, cb, kind)
         groups[page] = nil
-        local wrap = New("Frame", { Size = UDim2.new(1, 0, 0, 36), BackgroundTransparency = 1, LayoutOrder = nextOrder() }, page)
+        local wrap = New("CanvasGroup", { Size = UDim2.new(1, 0, 0, 36), BackgroundTransparency = 1, BorderSizePixel = 0,
+            LayoutOrder = nextOrder() }, page)
         local primary, danger = kind == "primary", kind == "danger"
         local rest  = primary and TH.Text or TH.Panel
         local hover = primary and Color3.fromRGB(208, 208, 214) or TH.Panel2
         local b = New("TextButton", { Position = UDim2.fromOffset(0, 4), Size = UDim2.new(1, 0, 0, 28),
             BackgroundColor3 = rest, Text = text, Font = FONT.Text, TextSize = 12,
             TextColor3 = primary and TH.Bg or (danger and TH.Bad or TH.Text), AutoButtonColor = false,
-            BorderSizePixel = 0 }, wrap)
+            BorderSizePixel = 0, ClipsDescendants = true }, wrap)
         Corner(b, 7)
         local st = Stroke(b, danger and TH.Bad or TH.Line, primary and 1 or (danger and 0.6 or 0))
         local sc = New("UIScale", { Scale = 1 }, b)
+        -- a soft vertical wipe grows out from the point you clicked
+        local function wipe(x)
+            local frac = 0.5
+            if x and b.AbsoluteSize.X > 0 then frac = math.clamp((x - b.AbsolutePosition.X) / b.AbsoluteSize.X, 0, 1) end
+            local r = New("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(frac, 0.5),
+                Size = UDim2.fromScale(0, 1), BackgroundColor3 = primary and TH.Bg or (danger and TH.Bad or TH.Text),
+                BackgroundTransparency = 0.82, BorderSizePixel = 0, ZIndex = 0 }, b)
+            Corner(r, 7)
+            Tw(r, 0.5, { Size = UDim2.fromScale(2.4, 1), BackgroundTransparency = 1 })
+            task.delay(0.55, function() if r.Parent then r:Destroy() end end)
+        end
         b.MouseEnter:Connect(function()
             Tw(b, 0.12, { BackgroundColor3 = hover })
             if not primary then Tw(st, 0.12, { Color = danger and TH.Bad or TH.Dim }) end
@@ -434,9 +518,12 @@ local function BuildWindow()
             Tw(b, 0.2, { BackgroundColor3 = rest }); Tw(sc, 0.2, { Scale = 1 })
             if not primary then Tw(st, 0.2, { Color = danger and TH.Bad or TH.Line }) end
         end)
-        b.MouseButton1Down:Connect(function() Tw(sc, 0.08, { Scale = 0.98 }) end)
-        b.MouseButton1Up:Connect(function() Tw(sc, 0.22, { Scale = 1 }) end)
-        b.Activated:Connect(cb)
+        b.MouseButton1Down:Connect(function() Tw(sc, 0.08, { Scale = 0.97 }) end)
+        b.MouseButton1Up:Connect(function() Tw(sc, 0.35, { Scale = 1 }, BACK) end)
+        b.Activated:Connect(function(input)
+            wipe(input and input.Position and input.Position.X)
+            cb()
+        end)
     end
 
     local function Legend(page)
@@ -656,6 +743,8 @@ local function BuildWindow()
         BackgroundColor3 = TH.Panel, Text = "", AutoButtonColor = false, BorderSizePixel = 0 }, Gui)
     Corner(fab, 9)
     local fabStroke = New("UIStroke", { Color = TH.Line, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, fab)
+    local fabRing = New("UIGradient", { Color = Rainbow(0) }, fabStroke)   -- shows only while a round is live
+    local fabScale = New("UIScale", { Scale = 1 }, fab)
     local fabCells = {}
     for r = 0, 2 do
         for c = 0, 2 do
@@ -676,8 +765,10 @@ local function BuildWindow()
             end)
         end
     end
-    fab.MouseEnter:Connect(function() Tw(fabStroke, 0.12, { Color = TH.Sub }) end)
-    fab.MouseLeave:Connect(function() Tw(fabStroke, 0.2, { Color = TH.Line }) end)
+    fab.MouseEnter:Connect(function() Tw(fabScale, 0.3, { Scale = 1.1 }, BACK); Tw(fabStroke, 0.15, { Thickness = 1.6 }) end)
+    fab.MouseLeave:Connect(function() Tw(fabScale, 0.3, { Scale = 1 }, BACK); Tw(fabStroke, 0.2, { Thickness = 1 }) end)
+    fab.MouseButton1Down:Connect(function() Tw(fabScale, 0.08, { Scale = 0.9 }) end)
+    fab.MouseButton1Up:Connect(function() Tw(fabScale, 0.35, { Scale = 1.1 }, BACK) end)
 
     -- ── Open / close ──
     local open = false
@@ -690,16 +781,19 @@ local function BuildWindow()
         if scaleTw then scaleTw:Cancel() end
         if v then
             if not win.Visible then
-                win.Position = restPos + UDim2.fromOffset(0, 10)
-                uiScale.Scale = full * 0.985
+                win.Position = restPos + UDim2.fromOffset(0, 16)
+                uiScale.Scale = full * 0.93
+                win.GroupTransparency = 1
+                Stagger(current)
+                LogoWave()
             end
             win.Visible = true
-            posTw = Tw(win, 0.26, { GroupTransparency = 0, Position = restPos })
-            scaleTw = Tw(uiScale, 0.26, { Scale = full })
+            posTw = Tw(win, 0.36, { GroupTransparency = 0, Position = restPos })
+            scaleTw = Tw(uiScale, 0.45, { Scale = full }, BACK)
         else
-            scaleTw = Tw(uiScale, 0.16, { Scale = full * 0.985 })
-            posTw = Tw(win, 0.16, { GroupTransparency = 1, Position = restPos + UDim2.fromOffset(0, 6) })
-            task.delay(0.22, function()
+            scaleTw = Tw(uiScale, 0.2, { Scale = full * 0.96 }, QUINT, Enum.EasingDirection.In)
+            posTw = Tw(win, 0.2, { GroupTransparency = 1, Position = restPos + UDim2.fromOffset(0, 10) }, QUINT, Enum.EasingDirection.In)
+            task.delay(0.26, function()
                 if not open then win.Visible = false; win.Position = restPos end
             end)
         end
@@ -712,15 +806,38 @@ local function BuildWindow()
         if not gp and i.KeyCode == Enum.KeyCode.RightShift then SetOpen(not open) end
     end))
 
+    -- ── Aurora: hairline + floating-button ring drift while visible (~20 fps, nothing when hidden) ──
+    local lastRun, lastTick = nil, 0
+    Bind(RunService.Heartbeat:Connect(function()
+        local now = os.clock()
+        if now - lastTick < 0.05 then return end
+        lastTick = now
+        if win.Visible then auroraG.Color = Rainbow((now * 0.05) % 1) end
+        if lastRun then
+            fabRing.Rotation = (now * 70) % 360
+            fabRing.Color = Rainbow((now * 0.05) % 1)
+        end
+    end))
+
     -- ── Live refresh ──
     task.spawn(function()
+        local lastCol, lastLabel
         while SV.Alive do
             local running = GameRunning.Value
             local col = running and (SV.Solving and TH.Warn or TH.Good) or TH.Dim
-            led.BackgroundColor3 = col
+            if running ~= lastRun then
+                lastRun = running
+                Tw(aurora, 0.7, { BackgroundTransparency = running and 0.2 or 0.7 })
+                Tw(fabStroke, 0.5, { Color = running and Color3.new(1, 1, 1) or TH.Line })
+            end
+            if col ~= lastCol then lastCol = col; Tw(led, 0.25, { BackgroundColor3 = col }) end
             fabCore.BackgroundColor3 = running and TH.Good or TH.Sub
-            footState.Text = Tr(running and "ROUND LIVE" or "IDLE")
-            footState.TextColor3 = running and TH.Good or TH.Dim
+            local label = Tr(running and "ROUND LIVE" or "IDLE")
+            if label ~= lastLabel then
+                lastLabel = label
+                footState.Text = label
+                Tw(footState, 0.4, { TextColor3 = running and TH.Good or TH.Dim })
+            end
 
             rSafe(tostring(Stats.safe))
             rMine(tostring(Stats.mine))
