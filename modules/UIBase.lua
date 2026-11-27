@@ -91,6 +91,14 @@ local FONT = {
     Mono = Enum.Font.RobotoMono,
 }
 
+-- Closed-loop pastel rainbow (first key == last key) so shifting the phase flows seamlessly.
+-- Used for hairlines / rings only: colour stays an accent, never a fill.
+local function Rainbow(phase, sat, val)
+    local k = {}
+    for i = 0, 8 do k[#k + 1] = ColorSequenceKeypoint.new(i / 8, Color3.fromHSV((phase + i / 8) % 1, sat or 0.36, val or 0.96)) end
+    return ColorSequence.new(k)
+end
+
 local Gui = New("ScreenGui", {
     Name = "BlockermanSolverUI", ResetOnSpawn = false, IgnoreGuiInset = true,
     ZIndexBehavior = Enum.ZIndexBehavior.Sibling, DisplayOrder = 999,
@@ -142,22 +150,25 @@ local function Toast(text, color)
     New("UIStroke", { Color = TH.Line, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, t)
     New("UIPadding", { PaddingLeft = UDim.new(0, 16), PaddingRight = UDim.new(0, 14) }, t)
     local sc = New("UIScale", { Scale = 0.96 }, t)
-    local stripe = New("Frame", { Position = UDim2.fromOffset(-16, 0), Size = UDim2.new(0, 3, 1, 0),
+    local stripe = New("Frame", { Position = UDim2.fromOffset(-16, 0), Size = UDim2.new(0, 3, 0, 0),
         BackgroundColor3 = col, BorderSizePixel = 0 }, t)
-    New("TextLabel", { BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.X,
-        Size = UDim2.new(0, 0, 1, 0), Text = Tr(text), Font = FONT.Text, TextSize = 13,
-        TextColor3 = TH.Text }, t)
+    local msg = New("TextLabel", { BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.X,
+        Position = UDim2.fromOffset(0, 12), Size = UDim2.new(0, 0, 1, 0), Text = Tr(text), Font = FONT.Text,
+        TextSize = 13, TextColor3 = TH.Text }, t)
     local life = New("Frame", { AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, -16, 1, 0),
         Size = UDim2.new(1, 30, 0, 2), BackgroundColor3 = col, BackgroundTransparency = 0.55,
         BorderSizePixel = 0 }, t)
 
     Tw(t, 0.28, { GroupTransparency = 0 })
-    Tw(sc, 0.3, { Scale = 1 })
+    Tw(sc, 0.42, { Scale = 1 }, Enum.EasingStyle.Back)
+    Tw(msg, 0.4, { Position = UDim2.fromOffset(0, 0) })
+    Tw(stripe, 0.5, { Size = UDim2.new(0, 3, 1, 0) })
     Tw(life, 2.6, { Size = UDim2.new(0, 0, 0, 2) }, Enum.EasingStyle.Linear)
     task.delay(2.6, function()
         if t.Parent then
             Tw(t, 0.25, { GroupTransparency = 1 })
             Tw(sc, 0.25, { Scale = 0.96 })
+            Tw(msg, 0.25, { Position = UDim2.fromOffset(0, -10) }, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
             task.delay(0.3, function() if t.Parent then t:Destroy() end end)
         end
     end)
@@ -170,6 +181,7 @@ SV.Gui = Gui
 SV.IconAsset = IconAsset
 SV.LoadLucide = LoadLucide
 SV.OnLucide = OnLucide
+SV.Rainbow = Rainbow
 SV.New = New
 SV.TH = TH
 SV.Toast = Toast
